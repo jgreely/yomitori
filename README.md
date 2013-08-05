@@ -37,6 +37,7 @@ Tools
 Basic Usage
 -----------
 
+	ytmakedict
     ytgloss -u userdict.txt foo.txt |
         ytknown -k known.txt -g gloss.txt > foo.yt
     ytruby foo.yt | yt2latex > foo.tex
@@ -54,7 +55,6 @@ TODO
 * add ab2yt to convert Aozora Bunko markup (clean up old code)
 * add yt2odt (clean up old code)
 * add yt2word (clean up old code)
-* add decent path substitution to readconfig()
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
 * explain the tricky bits

@@ -148,8 +148,11 @@ while (<>) {
 			#most particles are unlikely starters, like "no" and "ha";
 			# "ni" is a frequent starter, but also generates a
 			# lot of false positives to be weeded out later.
+			# TODO: find a way to remove "to" from this list without
+			# generating ridiculous false positives like "to naru"
+			# for unrelated expressions like "to naridasu".
 			if ($m[0]->{p1} eq "助詞"
-				and grep ($m[0]->{sf} eq $_,qw(の に は が で))) {
+				and grep ($m[0]->{sf} eq $_,qw(の に は が で と))) {
 				print $m[0]->{sf};
 				shift(@m);
 				next;
@@ -192,9 +195,12 @@ while (<>) {
 				# don't bother with lookup if all we have left
 				# are particles, counter words, suffixes,
 				# conjunctions, and/or auxiliary verbs.
+				# (形状詞 generates some false positives, too,
+				# but also some words that really need to be
+				# looked up; maybe only skip it if @m>1)
 				my $fluff = 0;
 				foreach my $pos1 (qw{助詞 接尾辞 助数詞 助動詞
-					形容詞 接続詞 形状詞}) {
+					形容詞 接続詞}) {
 					foreach my $m (@m[0..$n]) {
 						$fluff++ if $m->{p1} eq $pos1;
 					}
