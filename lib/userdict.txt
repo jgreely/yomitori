@@ -1,3 +1,10 @@
+# words that are parsed wrong by MeCab, and/or looked up wrong by
+# ytgloss. Technically this should be split into two files, since
+# you don't want to override the parsing just to fix the English
+# translation.
+#
+# Unlike the others, this file is TAB-separated to avoid ambiguity.
+#
 茉莉香	まりか	Marika
 白凰	はくおう	Hakuou
 元気印	げんきじるし	[n] mark of liveliness; sign of activity

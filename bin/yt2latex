@@ -1,9 +1,8 @@
 #!/usr/bin/env perl -CADS
 #
 # yt2latex: convert a glossed file into LaTeX source suitable
-# for processing with pLaTeX (tested with TeXLive 2013), called
-# with the "-kanji=utf8" option. By default, the output will
-# be sized for the Kindle.
+# for processing with upLaTeX (tested with TeXLive 2013). By
+# default, the output will be sized for the Kindle.
 #
 # TODO: support other paper sizes
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env perl -CADS
 
 # dvicleanruby: for each page, strip out any repeated glosses.
-# relies on the precise behaviors of pLaTeX, pxrubrica, and
+# relies on the precise behaviors of upLaTeX, pxrubrica, and
 # dviasm.py, all as shipped with TeXLive 2013, and only works
 # for words glossed precisely like this:
 #	\\aruby{\\label{$id}\\special{::tag $id}$word}{$reading}
