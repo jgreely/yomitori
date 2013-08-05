@@ -35,8 +35,7 @@ my $vocabid = 0;
 
 readconfig();
 
-my $BASEDIR = $YT{basedir};
-my $DB = "$BASEDIR/lib/dict.sqlite3";
+my $DB = "$YT{basedir}/lib/dict.sqlite3";
 
 my $DICT_INDEX = "$YT{dict_index} -d $YT{unidic} -f utf8 -t utf8";
 my @userdict = map($YT{libdir} . "/$_",split(/,/,$YT{userdict}||""));
@@ -53,16 +52,33 @@ GetOptions(
 	"user-dictionary|userdict|u=s" => \@userdict,
 	"title|t=s" => \$INFO{title},
 	"author|a=s" => \$INFO{author},
-) or die "usage: $0 [--user-dictionary file] [text ...]\n";
+) or die <<EOF;
+usage: $0 [--user-dictionary file] [--title name] [--author name] [text ...]
+    --user dictionary: either a tab-separated file of parsing/meaning
+        overrides, or a .csv file containing data in mecab_dict_index
+        format (the only way to really override verbs and adjectives)
+    --title: string to set as the book title in the PDF metadata
+    --author: string to set as the book author in the PDF metadata
+        title and author can also be embedded in a leading comment
+        block in the text, like so:
+        #Yomitori-1.0
+        # title Ame No Naka Ni Shinu
+        # author Nishimura Kyoutarou
+EOF
 
 my $userdict;
 my %userdict;
 if (@userdict) {
-	my $src = mktemp("ytglosssrcXXXXX");
-	$userdict = mktemp("ytglossdicXXXXX");
+	my $src = mktemp("$YT{tmpdir}/ytglosssrcXXXXX");
+	$userdict = mktemp("$YT{tmpdir}/ytglossdicXXXXX");
 	open(Out,">$src") or die "$0: $userdict: $!\n";
 	foreach my $file (@userdict) {
 		open(In,$file) or die "$0: $file: $!\n";
+		if ($file =~ /\.csv$/) {
+			print Out <In>;
+			close(In);
+			next;
+		}
 		while (<In>) {
 			next if /^\s*$|^\s*#/;
 			chomp;

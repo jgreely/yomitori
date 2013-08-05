@@ -5,6 +5,7 @@ dviasm = /usr/local/texlive/2013/texmf-dist/scripts/dviasm/dviasm.py
 basedir = .
 libdir = lib
 bindir = bin
+tmpdir = /tmp
 
 knownwords = known.txt,known-user.txt
 glosswords = gloss.txt,gloss-user.txt

@@ -66,7 +66,7 @@ sub stripruby {
 	# make a stab at removing interior kana as well, attaching
 	# the id tag to the first half.
 	#
-	if ($k =~ /^\P{InKana}.+\P{InKana}$/) {
+	if ($k =~ /^\P{InKana}\p{InKana}+\P{InKana}$/) {
 		my ($k1,$k2,$k3) = split(/(\p{InKana}+)/,$k,3);
 		if (defined $k3) {
 			# two bogons:

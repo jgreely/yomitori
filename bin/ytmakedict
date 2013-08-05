@@ -15,10 +15,9 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 
 readconfig();
 
-my $BASEDIR = $YT{basedir};
-my $SRCDIR = "$BASEDIR/dictdata";
+my $SRCDIR = "$YT{basedir}/dictdata";
 my %SRC = ("JMdict" => "word", "JMnedict.xml" => "name");
-my $DB = "/$BASEDIR/lib/dict.sqlite3";
+my $DB = "$YT{libdir}/dict.sqlite3";
 
 #hash for mapping entity values back into their names
 my %E = ();

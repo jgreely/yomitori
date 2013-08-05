@@ -46,14 +46,38 @@ my %metakeys = qw(
 
 sub readconfig {
 	my $HOME = $ENV{HOME};
-	open(In,"$HOME/.ytrc") or die "$0: $HOME/.ytrc: $!\n";
-	while (<In>) {
-		next if /^\s*$|^\s*#/;
-		chomp;
-		my ($key,$value) = /^(\S+)\s*=\s*(.*)$/;
-		$YT{$key} = $value;
+	if (! -f "$HOME/.ytrc") {
+		my $PREFIX = "/usr/local";
+		%YT = (
+			unidic => "$PREFIX/lib/mecab/dic/unidic",
+			dict_index => "$PREFIX/libexec/mecab/mecab-dict-index",
+			dviasm => "$PREFIX/texlive/2013/texmf-dist/scripts/dviasm/dviasm.py",
+			basedir => ".",
+			libdir => "lib",
+			bindir => "bin",
+			tmpdir => "/tmp",
+			knownwords => "known.txt,known-user.txt",
+			glosswords => "gloss.txt,gloss-user.txt",
+			userdict => "userdict.txt",
+		);
+	}else{
+		open(In,"$HOME/.ytrc") or die "$0: $HOME/.ytrc: $!\n";
+		while (<In>) {
+			next if /^\s*$|^\s*#/;
+			chomp;
+			my ($key,$value) = /^(\S+)\s*=\s*(.*)$/;
+			$YT{$key} = $value;
+		}
+		close(In);
 	}
-	close(In);
+	foreach (qw(libdir bindir tmpdir)) {
+		$YT{$_} = $YT{basedir} . "/" . $YT{$_}
+			unless substr($YT{$_},0,1) eq "/";
+	}
+	# make sure everything exists...
+	foreach (qw(unidic dict_index dviasm libdir bindir tmpdir)) {
+		die "$0: $YT{$_}: $!\n" unless -r $YT{$_};
+	}
 }
 
 sub allkana {
