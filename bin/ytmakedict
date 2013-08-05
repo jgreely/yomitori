@@ -1,0 +1,248 @@
+#!/usr/bin/env perl -CADS
+#
+# ytmakedict: utility to create SQLite dictionary from JMdict JMnedict.
+# takes about 15 minutes to run on my laptop
+
+require 5.10.1;
+use warnings;
+use strict;
+use XML::Twig;
+use DBI;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+use Getopt::Long qw(:config no_ignore_case bundling);
+
+readconfig();
+
+my $BASEDIR = $YT{basedir};
+my $SRCDIR = "$BASEDIR/dictdata";
+my %SRC = ("JMdict" => "word", "JMnedict.xml" => "name");
+my $DB = "/$BASEDIR/lib/dict.sqlite3";
+
+#hash for mapping entity values back into their names
+my %E = ();
+
+my @arrays = qw(k_ele ke_pri ke_inf r_ele re_pri re_inf re_restr
+	sense pos field misc dial gloss ant s_inf xref stagk stagr lsource
+	audit bibl etym links example pri trans name_type trans_det);
+
+my $count;
+my $etype;
+
+unlink($DB);
+my $dbh = DBI->connect("dbi:SQLite:dbname=$DB","","",
+	{ sqlite_unicode => 1 ,AutoCommit => 0 });
+create_db($dbh);
+
+my $dict_sth = $dbh->prepare(q(
+	insert into dict (type,kanji,reading,gloss) values (?,?,?,?)
+));
+
+foreach my $SRC (sort keys %SRC) {
+	my $twig = new XML::Twig(
+		start_tag_handlers => { entry => \&dump_entities },
+		twig_handlers => {
+			ke_inf => \&unent,
+			re_inf => \&unent,
+			pos => \&unent,
+			field => \&unent,
+			misc => \&unent,
+			dial => \&unent,
+			name_type => \&unent,
+			entry => \&parse_entry ,
+			# hack to give this field a non-undef value
+			re_nokanji => sub { $_->set_text(1) },
+		});
+	$count = 0;
+	print "Importing $SRC\n";
+	$etype = $SRC{$SRC};
+	$twig->parsefile("$SRCDIR/$SRC");
+	$dbh->commit;
+}
+
+create_indexes($dbh);
+close(STDERR); #sqlite/perl bug
+$dbh->disconnect;
+exit 0;
+
+#sigh; I can't seem to get it to not expand entities. I
+#want to store the entity-coded version in the database,
+#but it looks like the only way to do that is to dump the
+#entity table into a hash and undo the substitution,
+#working under the assumption that they're only used as
+#the complete value of <pos>, <field>, and <dial>
+#
+sub dump_entities {
+	my ($twig,$element) = @_;
+
+	foreach my $entity ($twig->entity_names) {
+		$E{$twig->entity($entity)->val} = $entity;
+	}
+	#only run once, then delete the handler
+	$twig->setStartTagHandler("entry");
+}
+
+sub parse_entry {
+	my ($twig,$element) = @_;
+	$count++;
+
+	my $ref = $element->simplify(forcearray=>\@arrays);
+	# strip out redundant xml:lang attributes
+	if (defined $ref->{sense}) {
+		# jmdict schema
+		foreach my $sense (@{$ref->{sense}}) {
+			foreach my $field (qw(gloss lsource)) {
+				if (ref $sense->{$field}) {
+					foreach my $el (@{$sense->{$field}}) {
+						delete $el->{'xml:lang'} if $el->{'xml:lang'} eq 'eng';
+					}
+				}
+			}
+		}
+#TODO: pull this giant mess out into a separate function that
+#returns an array of split records that you can just loop over
+#to insert.
+		# now that the entry is in canonical form, break it into
+		# individual kanji/kana/sense combinations based on
+		# re_nokanji, re_restr, stagk, and stagr
+		#
+		my @K;
+		@K = map($_->{keb},@{$ref->{k_ele}}) if ref($ref->{k_ele});
+		my @NKR;
+		@NKR = @{$ref->{r_ele}} unless @K;
+		foreach my $k (@K) {
+			my @ktags;
+			foreach my $r (@{$ref->{r_ele}}) {
+				if ($r->{re_nokanji}) {
+					push(@NKR,$r) unless $r->{nkr}++;
+					next;
+				}
+				next if ref($r->{re_restr}) &&
+					!grep($k eq $_,@{$r->{re_restr}});
+				my @pos;
+				my @S;
+				foreach my $s (@{$ref->{sense}}) {
+					my @tags;
+					if (ref($s->{misc})) {
+						push(@tags,@{$s->{misc}});
+					}
+					if (ref($s->{pos})) {
+						@pos = @{$s->{pos}};
+					}
+					next if ref($s->{stagk}) &&
+						!grep($k eq $_,@{$s->{stagk}});
+					next if ref($s->{stagr}) &&
+						!grep($r->{reb} eq $_,@{$s->{stagr}});
+					my @gloss;
+					foreach my $g (@{$s->{gloss}}) {
+						next if $g->{'xml:lang'};
+						push(@gloss,$g->{content})
+					}
+					next unless @gloss;
+					# TODO: strip out most irrelevant tags
+					my $gloss;
+					if (@pos or @tags) {
+						$gloss = "[";
+						if (@pos) {
+							$gloss .= join(",",@pos);
+						}
+						if (@gloss) {
+							$gloss .= ";" if @pos;
+							$gloss .= join(",",@tags) if @tags;
+						}
+						$gloss .= "] ";
+					}
+					$gloss .= join("; ",@gloss);
+					push(@S,$gloss);
+				}
+				$dict_sth->execute(0,$k,$r->{reb},join(". ",@S));
+			}
+		}
+		foreach my $r (@NKR) {
+			my @pos;
+			my @S;
+			foreach my $s (@{$ref->{sense}}) {
+				my @tags;
+				if (ref($s->{misc})) {
+					push(@tags,@{$s->{misc}});
+				}
+				if (ref($s->{pos})) {
+					@pos = @{$s->{pos}};
+				}
+				next if ref($s->{stagr}) &&
+					!grep($r->{reb} eq $_,@{$s->{stagr}});
+				my @gloss;
+				foreach my $g (@{$s->{gloss}}) {
+					next if $g->{'xml:lang'};
+					push(@gloss,$g->{content})
+				}
+				next unless @gloss;
+				my $gloss;
+				if (@pos or @tags) {
+					$gloss = "[";
+					$gloss .= join(",",@pos) . ";" if @pos;
+					$gloss .= join(",",@tags) if @tags;
+					$gloss .= "] ";
+				}
+				$gloss .= join("; ",@gloss);
+				push(@S,$gloss);
+			}
+			$dict_sth->execute(0,"",$r->{reb},join(". ",@S));
+		}
+	}else{
+		# jmnedict - no entries with multiple kebs, handful of
+		# entries with multiple rebs; no entries with multiple
+		# trans, a few thousand with multiple trans_det and name_type.
+		#
+		my ($keb,$pos,$gloss) = ("","","");
+		$keb = $ref->{k_ele}->[0]->{keb}
+			if defined($ref->{k_ele});
+		$pos = join(",",@{$ref->{trans}->[0]->{name_type}})
+			if defined $ref->{trans}->[0]->{name_type};
+		$gloss = join(",",@{$ref->{trans}->[0]->{trans_det}})
+			if defined $ref->{trans}->[0]->{trans_det};
+		foreach my $reb (map($_->{reb},@{$ref->{r_ele}})) {
+			$gloss = "[$pos] " . $gloss if $pos;
+			$dict_sth->execute(1,$keb,$reb,$gloss);
+		}
+	}
+
+	# reclaim the memory!
+	$element->delete;
+	if ($count % 10000 == 0) {
+		$dbh->commit;
+		print "$count\n";
+	}
+}
+
+sub unent {
+	my (undef,$x) = @_;
+	$x->set_text($E{$x->text}) if $E{$x->text};
+}
+
+sub create_db {
+	my ($dbh) = @_;
+	foreach (split(/;/,<<EOF)) {
+		create table dict (
+			type integer,
+			kanji text,
+			reading text,
+			gloss text
+		)
+EOF
+		$dbh->do($_);
+	}
+	$dbh->commit;
+}
+
+sub create_indexes {
+	my ($dbh) = @_;
+	foreach (split(/;/,<<EOF)) {
+		create index dict_t_k_r on dict(type,kanji,reading);
+		create index dict_t_r on dict(type,reading)
+EOF
+		$dbh->do($_);
+	}
+	$dbh->commit;
+}

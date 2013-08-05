@@ -1,0 +1,99 @@
+#!/usr/bin/env perl -CADS
+#
+# ytvocab: extract a vocabulary list from a glossed file
+#
+# TODO: add HTML/LaTeX/Word/ODT output options
+
+require 5.10.1;
+use warnings;
+use strict;
+use utf8;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+use Getopt::Long qw(:config no_ignore_case bundling);
+
+my $VERBOSE;
+my $TEXFILE;
+GetOptions(
+	"verbose|v" => \$VERBOSE,
+	"texfile|t=s" => \$TEXFILE,
+) or die <<EOF;
+usage: $0 [--verbose] [--texfile file] [file...]
+	--verbose: print complete glosses instead of trimming
+	--texfile: incorporate page numbers from LaTeX aux file
+EOF
+
+my %seen;
+while (<>) {
+	s/$YTREGEXP/dometa($1)/ego;
+}
+
+if ($TEXFILE) {
+	my $curpage;
+	my @words;
+	open(In,$TEXFILE) or die "$0: $TEXFILE: $!\n";
+	while (<In>) {
+		my ($id,$pagenum) = /^.newlabel{(id\d+)}{{\d*}{(\d+)}/;
+		next unless $id;
+		if ($curpage != $pagenum) {
+			if ($curpage and @words) {
+				print "PAGE $curpage\n";
+				printwords({count=>0},@words);
+				print "\n";
+			}
+			@words = ();
+			$curpage = $pagenum;
+		}
+		push(@words,$id);
+	}
+	close(In);
+	if ($curpage and @words) {
+		print "PAGE $curpage\n";
+		printwords({count=>0},uniq(@words));
+	}
+}else{
+	printwords({count=>1},sort keys %seen);
+}
+exit 0;
+
+sub uniq {
+	my %tmp;
+	return grep(!$tmp{$_}++,@_);
+}
+
+sub printwords {
+	my $options = shift(@_);
+	foreach my $id (@_) {
+		my $word = $seen{$id}->{dictform} || $seen{$id}->{word};
+		my $reading = $seen{$id}->{dictreading} || $seen{$id}->{reading};
+		# don't use kanji if it wasn't there originally...
+		if (allkana($seen{$id}->{word}) and !allkana($word)) {
+			$word = $reading;
+		}
+		$reading = "" if $reading and kata2hira($word) eq kata2hira($reading);
+		my ($shortid) = $id =~ /^id0+(\d+)$/;
+		if ($VERBOSE) {
+			print $id,"\t";
+		}
+		if ($options->{count}) {
+			print $seen{$id}->{count},"\t";
+		}
+		print join("\t",$word,$reading,$seen{$id}->{gloss}),"\n";
+	}
+}
+
+sub dometa {
+	my $meta = parsemeta($_[0]);
+	if ($meta->{id}) {
+		if (ref $seen{$meta->{id}}) {
+			$seen{$meta->{id}}->{count}++;
+		}else{
+			substr($meta->{gloss},60) = " ..."
+				if !$VERBOSE and length($meta->{gloss}) > 60;
+			$seen{$meta->{id}} = $meta;
+			$seen{$meta->{id}}->{count} = 1;
+		}
+	}
+	return "";
+}

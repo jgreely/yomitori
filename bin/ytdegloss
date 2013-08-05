@@ -1,0 +1,26 @@
+#!/usr/bin/env perl -CADS
+#
+# ytdegloss: utility to strip all markup inserted by ytgloss.
+# useful for diffing against the original file to make sure
+# the basic text is still intact after editing.
+
+require 5.10.1;
+use warnings;
+use strict;
+use utf8;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+
+readconfig();
+
+while (<>) {
+	s/$YTREGEXP/stripmeta($1)/ego;
+	print;
+}
+exit 0;
+
+sub stripmeta {
+	my ($meta) = parsemeta($_[0]);
+	return $meta->{word};
+}

@@ -1,0 +1,75 @@
+#!/j/bin/perl -CADS
+
+# dvicleanruby: for each page, strip out any repeated glosses.
+# relies on the precise behaviors of pLaTeX, pxrubrica, and
+# dviasm.py, all as shipped with TeXLive 2013, and only works
+# for words glossed precisely like this:
+#	\\aruby{\\label{$id}\\special{::tag $id}$word}{$reading}
+#
+# each glossed word has a "::tag" line inside the
+# push/pop pair where it is set; the gloss for that
+# word is inside the *previous* push/pop pair at the
+# same level, so we have to search backwards through
+# the file to find it.
+
+require 5.10.1;
+use strict;
+use feature "switch";
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+
+readconfig();
+my $DVIASM = $YT{dviasm};
+
+my ($file) = @ARGV;
+my $dvi = $file;
+$file =~ s/.dvi$/.dump/;
+my $dump = $file;
+
+open(In,"$DVIASM $dvi|");
+open(Out,">$dump");
+
+my $page = -1;
+my %seen;
+my @buffer;
+my $ingloss;
+my $depth;
+while (<In>) {
+	given($_) {
+		when(/^\[page (\d+)/) {
+			%seen = ();
+			push(@buffer,$_);
+		}
+		when(/^(\s*)xxx: '::tag (id\d+)'$/) {
+			$depth = length($1) - 2;
+			$ingloss = $2;
+			push(@buffer,$_);
+			next unless $seen{$ingloss}++;
+
+			my $start;
+			my $stop;
+			for my $i (reverse 0..$#buffer) {
+				if ($buffer[$i] =~ /^ {$depth}pop:$/) {
+					$stop = $i;
+				}elsif (defined($stop)
+						and $buffer[$i] =~ /^ {$depth}push:$/) {
+					$start = $i;
+					last;
+				}
+			}
+			splice(@buffer,$start,$stop - $start + 1);
+			print Out @buffer if @buffer;
+			$ingloss = "";
+			@buffer = ();
+		}
+		default {
+			push(@buffer,$_);
+		}
+	}
+}
+print Out @buffer if @buffer;
+close(Out);
+rename($dvi,"$dvi-");
+system("$DVIASM -o $dvi $dump");
+exit 0;

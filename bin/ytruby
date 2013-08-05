@@ -1,0 +1,95 @@
+#!/usr/bin/env perl -CADS
+#
+# ytruby: strip kana from glossed words, for use as proper furigana.
+# This is a bit messy, particularly the attempt to handle interior
+# kana.
+#
+
+require 5.10.1;
+use warnings;
+use strict;
+use utf8;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+use Getopt::Long qw(:config no_ignore_case bundling);
+
+while (<>) {
+	s/$YTREGEXP/dometa($1)/ego;
+	print;
+}
+exit 0;
+
+sub dometa {
+	my $meta = parsemeta($_[0]);
+	return "{" . $meta->{word} . ($meta->{id} ? " I=" . $meta->{id} : "")
+		. "}" unless $meta->{reading};
+	return stripruby($meta->{word},$meta->{reading},$meta->{id});
+}
+
+# strip out leading, trailing, and interior kana that match in
+# both strings, for better-looking ruby in Word/LaTeX.
+#
+sub stripruby {
+	my ($kanji,$reading,$id) = @_;
+	my @k = split(//,$kanji);
+	my @r = split(//,$reading);
+	my $prefix = 1;
+	my ($kp,$rp,$k,$r,$ks,$rs);
+	map($_="",$kp,$rp,$k,$r,$ks,$rs);
+	foreach my $i (0..$#r) {
+		if ($prefix and $k[$i] =~ /^\p{InKana}$/) {
+			if ($k[$i] eq $r[$i]) {
+				$kp .= $k[$i];
+				$rp .= $r[$i];
+				next;
+			}
+		}
+		$prefix = 0;
+		$k .= $k[$i] if defined $k[$i];
+		$r .= $r[$i] if defined $r[$i];
+	}
+	@k = split(//,$k);
+	@r = split(//,$r);
+	foreach my $i (0..$#r) {
+		if ($k[$#k - $i] =~ /^\p{InKana}$/) {
+			if ($k[$#k - $i] eq $r[$#r - $i]) {
+				$ks .= chop($k);
+				$rs .= chop($r);
+			}
+		}
+		last if $k[$#k - $i] !~ /^\p{InKana}$/;
+	}
+	$ks = reverse $ks;
+	$rs = reverse $rs;
+
+	# make a stab at removing interior kana as well, attaching
+	# the id tag to the first half.
+	#
+	if ($k =~ /^\P{InKana}.+\P{InKana}$/) {
+		my ($k1,$k2,$k3) = split(/(\p{InKana}+)/,$k,3);
+		if (defined $k3) {
+			# two bogons:
+			# - katakana small-tsu sometimes used instead of hiragana
+			# - sigh: カ月, ケ月, ヶ月, ヵ月
+			my $ktmp = $k2;
+			if ($ktmp eq "ッ") {
+				$ktmp = "っ";
+			}elsif (grep($ktmp eq $_,qw(カ ケ ヶ ヵ))) {
+				$ktmp = '[かが]';
+			}
+			my ($r1,$r2,$r3) = split(/($ktmp)/,$r,3);
+		    if ($id) {
+		        return sprintf("%s{%s|%s I=%s}%s{%s|%s}%s",
+					$kp,$k1,$r1,$id,$k2,$k3,$r3,$ks);
+		    }else{
+		        return sprintf("%s{%s|%s}%s{%s|%s}%s",
+					$kp,$k1,$r1,$k2,$k3,$r3,$ks);
+		    }
+		}
+	}elsif ($id) {
+		return sprintf("%s{%s|%s I=%s}%s",$kp,$k,$r,$id,$ks);
+	}else{
+		return sprintf("%s{%s|%s}%s",$kp,$k,$r,$ks);
+    }
+}

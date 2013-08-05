@@ -1,0 +1,78 @@
+#!/usr/bin/env perl -CADS
+#
+# ytknown: remove pronunciations and/or glosses based on supplied lists
+# of known words.
+
+require 5.10.1;
+use warnings;
+use strict;
+use utf8;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+use Getopt::Long qw(:config no_ignore_case bundling);
+
+readconfig();
+
+my @Known = map($YT{libdir} . "/$_",split(/,/,$YT{knownwords}));
+my @GlossOnly = map($YT{libdir} . "/$_",split(/,/,$YT{glosswords}));
+
+GetOptions(
+	"known-words|known|k=s" => \@Known,
+	"gloss-only|gloss|g=s" => \@GlossOnly,
+) or die "usage: $0 [--known-words file] [--gloss-only file] [file ...]\n";
+
+my %Skiplist;
+while (@GlossOnly) {
+	my $GlossOnly = shift(@GlossOnly);
+	open(In,$GlossOnly) or die "$0: $GlossOnly: $!\n";
+	while (<In>) {
+		next if /^\s*$|^\s*#/;
+		chomp;
+		my ($kanji,$reading) = split;
+		$reading = $kanji unless defined $reading;
+		$Skiplist{$kanji,$reading} = "gloss";
+	}
+	close(In);
+}
+while (@Known) {
+	my $Known = shift(@Known);
+	open(In,$Known) or die "$0: $Known: $!\n";
+	while (<In>) {
+		next if /^\s*$|^\s*#/;
+		chomp;
+		my ($kanji,$reading) = split;
+		$reading = $kanji unless defined $reading;
+		$Skiplist{$kanji,$reading} = "skip";
+	}
+	close(In);
+}
+
+my %SeenId;
+while (<>) {
+	s/$YTREGEXP/dometa($1)/ego;
+	print;
+}
+exit 0;
+
+sub dometa {
+	my $meta = parsemeta($_[0]);
+	my $skip = $SeenId{$meta->{id}}
+		|| $Skiplist{$meta->{word},$meta->{reading}}
+		|| $Skiplist{$meta->{dictform},$meta->{dictreading}}
+		|| "good";
+
+	$SeenId{$meta->{id}} = $skip unless $SeenId{$meta->{id}};
+	if ($skip eq "gloss") {
+		if (!$meta->{reading} or $meta->{word} eq $meta->{reading}) {
+			return $meta->{word};
+		}else{
+			return makemeta({word => $meta->{word},
+				reading => $meta->{reading}});
+		}
+	}elsif ($skip eq "skip") {
+		return $meta->{word};
+	}else{
+		return $_[0];
+	}
+}

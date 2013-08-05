@@ -1,0 +1,446 @@
+#!/usr/bin/env perl -CADS
+#
+# ytgloss: run a text file through MeCab/Unidic, with optional
+# user dictionary, and markup all identified words and phrases
+# with pronunciations and English definitions.
+#
+
+require 5.10.1;
+use warnings;
+use strict;
+use utf8;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+use Encode;
+use Text::MeCab;
+use DBI;
+use Getopt::Long qw(:config no_ignore_case bundling);
+use File::Temp qw(mktemp);
+use sigtrap qw(handler cleanup normal-signals);
+
+use Data::Dumper;
+$Data::Dumper::Indent = 1;
+$Data::Dumper::Useqq = 1;
+#$Data::Dumper::Terse = 1;
+{ no warnings 'redefine';
+    sub Data::Dumper::qquote {
+        my $s = shift;
+        return "'$s'";
+    }
+}
+
+my %seen;
+my $vocabid = 0;
+
+readconfig();
+
+my $BASEDIR = $YT{basedir};
+my $DB = "$BASEDIR/lib/dict.sqlite3";
+
+my $DICT_INDEX = "$YT{dict_index} -d $YT{unidic} -f utf8 -t utf8";
+my @userdict = map($YT{libdir} . "/$_",split(/,/,$YT{userdict}||""));
+
+my %INFO = (
+	title => "",
+	author => "",
+	year => "",
+	series => "",
+	_done => 0,
+);
+
+GetOptions(
+	"user-dictionary|userdict|u=s" => \@userdict,
+	"title|t=s" => \$INFO{title},
+	"author|a=s" => \$INFO{author},
+) or die "usage: $0 [--user-dictionary file] [text ...]\n";
+
+my $userdict;
+my %userdict;
+if (@userdict) {
+	my $src = mktemp("ytglosssrcXXXXX");
+	$userdict = mktemp("ytglossdicXXXXX");
+	open(Out,">$src") or die "$0: $userdict: $!\n";
+	foreach my $file (@userdict) {
+		open(In,$file) or die "$0: $file: $!\n";
+		while (<In>) {
+			next if /^\s*$|^\s*#/;
+			chomp;
+			my ($word,$reading,$gloss) = split(/\t/);
+			if (!$gloss) {
+				$gloss = $reading;
+				$reading = $word;
+			}
+			$userdict{$word,$reading} = $gloss;
+			$reading = hira2kata($reading);
+			# crude hack to treat user-supplied words as low-cost
+			# names; unidic-specific
+			print Out "$word,0,0,100,名詞,固有名詞,人名,姓,*,*,",
+				"$reading,$reading,$word,$reading,$word,$reading,和,*,*,*,*\n";
+		}
+		close(Out);
+	}
+	system("$DICT_INDEX -u $userdict $src > /dev/null 2>&1");
+	unlink($src);
+}
+
+my @MCOPTS = (dicdir => $YT{unidic});
+push(@MCOPTS,userdic => $userdict) if $userdict;
+my $MC = Text::MeCab->new(@MCOPTS);
+
+my $dbh = DBI->connect("dbi:SQLite:dbname=$DB","","",
+	{ sqlite_unicode => 1 ,AutoCommit => 0 });
+my $krlookup = $dbh->prepare(q{
+	select kanji,reading,gloss from dict
+	where type = ? and kanji = ? and reading = ?
+});
+my $klookup = $dbh->prepare(q{
+	select kanji,reading,gloss from dict where type = ? and kanji = ?
+});
+my $rlookup = $dbh->prepare(q{
+	select kanji,reading,gloss from dict where type = ? and reading = ?
+});
+
+while (<>) {
+	if (/^$/) {
+		print;
+		next;
+	}
+	chomp;	
+	if ($. == 1 and /^#Yomitori-1/) {
+		# scan for file metadata lines
+		while (<>) {
+			last unless /^#/;
+			my ($k,$v) = /^#\s*(\S+)\s+(.*)$/;
+			# command-line title/author win!
+			$INFO{$k} = $v if $v and ! $INFO{$k};
+		}
+	}
+	if (! $INFO{_done}) {
+		printheader();
+		$INFO{_done} = 1;
+	}
+	foreach my $clause (getclauses(getmorphemes($_))) {
+		if ($clause->{_filler}) {
+			print $clause->{sf};
+			next;
+		}
+		my @m = @{$clause->{m}};
+		while (@m > 0) {
+			my ($sf,$sr,$df,$dr,$gloss);
+
+			#most particles are unlikely starters, like "no" and "ha";
+			# "ni" is a frequent starter, but also generates a
+			# lot of false positives to be weeded out later.
+			if ($m[0]->{p1} eq "助詞"
+				and grep ($m[0]->{sf} eq $_,qw(の に は が で))) {
+				print $m[0]->{sf};
+				shift(@m);
+				next;
+			}elsif ($m[0]->{p1} eq "助動詞") {
+				print $m[0]->{sf};
+				shift(@m);
+				next;
+			}
+
+			foreach my $n (reverse(0..$#m)) {
+				# compute the composite surface/reading;
+				# if the reading and dictreading differ,
+				# compute a separate dictform/dictreading
+				# that should be looked up first.
+				# 
+				$sf = join("",map($_->{sf},@m[0..$n]));
+				$sr = join("",map($_->{sr},@m[0..$n]));
+				($df,$dr) = ($sf,$sr);
+				if ($m[$n]->{sr} ne $m[$n]->{dr}) {
+					$df = join("",map($_->{sf},@m[0..($n-1)]),
+						$m[$n]->{df});
+					$dr = join("",map($_->{sr},@m[0..($n-1)]),
+						$m[$n]->{dr});					
+				}elsif ($n == 0) {
+					$df = $m[0]->{df};
+					$dr = $m[0]->{dr};
+				}
+
+				# do exact matches on the user dictionary
+				if ($userdict{$df,$dr}) {
+					$gloss = $userdict{$df,$dr};
+					splice(@m,0,$n+1);
+					last;
+				}elsif ($userdict{$sf,$sr}) {
+					$gloss = $userdict{$sf,$sr};
+					splice(@m,0,$n+1);
+					last;
+				}
+
+				# don't bother with lookup if all we have left
+				# are particles, counter words, suffixes,
+				# conjunctions, and/or auxiliary verbs.
+				my $fluff = 0;
+				foreach my $pos1 (qw{助詞 接尾辞 助数詞 助動詞
+					形容詞 接続詞 形状詞}) {
+					foreach my $m (@m[0..$n]) {
+						$fluff++ if $m->{p1} eq $pos1;
+					}
+				}
+				# also check for non-independent verbs at start ...(i)(ta)
+				if ($m[0]->{p1} eq "動詞" and $m[0]->{p2} eq "非自立可能") {
+					$fluff++;
+				}
+				if ($fluff == $n + 1) {
+					print $sf;
+					splice(@m,0,$n+1);
+					last;
+				}
+				my ($k,$r,$g);
+				#JMdict first
+
+				# first try for an exact match on (df,dr)
+				$krlookup->execute(0,$df,$dr);
+				($k,$r,$g) = $krlookup->fetchrow_array;
+				if (defined $g) {
+					$gloss = $g;
+					splice(@m,0,$n+1);
+					last;
+				}
+
+				# match (sf,sr) - usually same as previous if doesn't
+				# end in a conjugated verb or adjective or include an
+				# honorific o/go as hiragana
+				$krlookup->execute(0,$sf,$sr);
+				($k,$r,$g) = $krlookup->fetchrow_array;
+				if (defined $g) {
+					$gloss = $g;
+					splice(@m,0,$n+1);
+					# don't print the dictform, since that's not what
+					# we found
+					$dr = $sr;
+					$df = $sf;
+					last;
+				}
+
+				# katakana words (sf)
+				if ($sf =~ /^\p{InKataKana}+$/) {
+					$rlookup->execute(0,$sf);
+					($k,$r,$g) = $rlookup->fetchrow_array;
+					if (defined $g) {
+						$gloss = $g;
+						splice(@m,0,$n+1);
+						last;
+					}
+				}
+
+				# before we start ignoring kanji, see if the last
+				# two morphemes are a verb and an auxiliary verb.
+				next if $n > 0 and $m[$n-1]->{p1} eq "動詞"
+					and $m[$n]->{p1} eq "助動詞";
+
+				# and while we're at it, at least some trailing
+				# particles should be nuked.
+				next if $m[$n]->{sf} eq "の" and $m[$n]->{p1} eq "助詞";
+
+				# match on just dr, in case the kanji usage is inconsistent,
+				# but not if it ends in a particle or starts with an
+				# honorific o/go
+				if ($m[$n]->{p1} ne "助詞" and $m[0]->{df} ne "御") {
+					$rlookup->execute(0,$dr);
+					($k,$r,$g) = $rlookup->fetchrow_array;
+					if (defined $g) {
+						$gloss = $g;
+						splice(@m,0,$n+1);
+						last;
+					}
+				}
+
+				# non-kanji words ("",dr)
+				$krlookup->execute(0,"",$dr);
+				($k,$r,$g) = $krlookup->fetchrow_array;
+				if (defined $g) {
+					$gloss = $g;
+					splice(@m,0,$n+1);
+					last;
+				}
+
+				# try exact match in namedict
+				$krlookup->execute(1,$sf,$sr);
+				($k,$r,$g) = $krlookup->fetchrow_array;
+				if (defined $g) {
+					$gloss = $g;
+					splice(@m,0,$n+1);
+					# don't print the dictform, since that's not what
+					# we found
+					$dr = $sr;
+					$df = $sf;
+					last;
+				}
+
+				# try katakana match in namedict
+				if ($sf =~ /^\p{InKataKana}+$/) {
+					$rlookup->execute(1,$sf);
+					($k,$r,$g) = $rlookup->fetchrow_array;
+					if (defined $g) {
+						$gloss = $g;
+						splice(@m,0,$n+1);
+						last;
+					}
+				}
+
+				# give up trying
+				if ($n == 0) {
+					if (allkana($sf)) {
+						print $sf;
+					}elsif ($sf) {
+						printglossword($sf,$sr,"XunknownX",$df,$dr);
+					}
+					shift(@m);
+					last;
+				}
+			}
+			if ($gloss) {
+				printglossword($sf,$sr,$gloss,$df,$dr) if $gloss;
+			}
+		}
+	}
+	print "\n";
+}
+$krlookup->finish;
+$klookup->finish;
+$rlookup->finish;
+$dbh->disconnect;
+exit(0);
+
+sub printglossword {
+	my ($word,$reading,$gloss,$dictform,$dictreading) = @_;
+	if (my $id = $seen{$word,$reading,$gloss}) {
+		print makemeta({
+			word => $word,
+			reading => $reading,
+			id => $id,
+		});
+	}elsif ($word =~ /^\p{InKana}+$/) {
+		my $id = ++$vocabid;
+		$seen{$word,$reading,$gloss} = $id;
+		my $meta = {
+			word => $word,
+			reading => "",
+			id => $id,
+			gloss => $gloss,
+		};
+		if ($dictreading and $dictreading ne $reading) {
+			$meta->{dictreading} = $dictreading;
+			$meta->{dictform} = $dictform;
+		}
+		print makemeta($meta);
+	}else{
+		my $id = ++$vocabid;
+		$seen{$word,$reading,$gloss} = $id;
+		my $meta = {
+			word => $word,
+			reading => $reading,
+			id => $id,
+			gloss => $gloss,
+		};
+		if ($dictreading and $dictreading ne $reading) {
+			$meta->{dictreading} = $dictreading;
+			$meta->{dictform} = $dictform;
+		}
+		print makemeta($meta);
+	}
+}
+
+sub getmorphemes {
+	my ($line) = @_;
+	$line =~ tr/ /–/; # spaces get lost in parsing; this is a UTF8 en-dash
+	my @morpheme;
+	for (my $node = $MC->parse($line); $node; $node = $node->next) {
+		my $surface = decode_utf8($node->surface) || "";
+		$surface =~ tr/–/ /;
+		my $feature = decode_utf8($node->feature) || "";
+		$feature =~ tr/*//d;
+		my @feature = split(",",$feature);
+		foreach (0..17) {
+			$feature[$_] = "" unless defined $feature[$_];
+		}
+		my ($pos1,$pos2,$ctype,$cform,$dictreading,
+			$dictform,$origin,$reading,$pron) = @feature[0,1,4,5,6,7,12,17,9];
+		$dictform =~ s/-.*$//;
+		#field 17 isn't always filled in, so fall back to 9, which
+		#might have "ー" in it
+		$reading = $pron unless $reading;
+		# I have no idea why "0" has no surface form in unidic
+		$surface = "0" if $pos2 eq "数詞" and $dictform eq "ゼロ";
+		# Sometimes hiragana small-tsu becomes a standalone morpheme
+		# with no reading.
+		if ($origin eq "記号" and $surface eq "っ") {
+			$origin = "";
+			$reading = $surface;
+			$dictform = $surface;
+			$dictreading = $surface;
+		}
+		#if there's kanji in dictreading, mecab has punted, and
+		#found no valid reading; flag these for manual fixing
+		if ($dictreading !~ /^\p{InKana}+$/) {
+			$dictreading = "XnoparseX";
+			$reading = "XnoparseX";
+		}
+		push(@morpheme,{
+			sf => $surface,
+			sr => ($reading ? kata2hira($reading) : ""),
+			df => $dictform,
+			dr => ($dictreading ? kata2hira($dictreading) : ""),
+			p1 => $pos1,
+			p2 => $pos2,
+			ct => $ctype,
+			cf => $cform,
+			or => $origin,
+		});
+	}
+	return @morpheme;
+}
+
+sub getclauses {
+	my @clause;
+	my $current = {_filler => 1, sf => "", sr => "", m => []};
+	foreach (@_) {
+		#TODO: allow "、" in non-filler clause, for AsoIku on-mim and
+		# other edge cases
+		next if $_->{p1} eq "BOS/EOS";
+		if ($_->{or} eq "記号"
+			or $_->{sf} =~ /^[\p{PosixPrint}\p{InFWAN}]+$/
+			or $_->{p2} eq "数詞") {
+			if (! $current->{_filler}) {
+				push(@clause,$current);
+				$current = {_filler => 1, sf => "", sr => "", m => []};
+			}
+			push(@{$current->{m}},$_);
+			$current->{sf} .= $_->{sf};
+			$current->{sr} .= $_->{sr};
+		}else{
+			if ($current->{_filler}) {
+				push(@clause,$current);
+				$current = {_filler => 0, sf => "", sr => "", m => []};
+			}
+			$current->{sf} .= $_->{sf};
+			$current->{sr} .= $_->{sr};
+			push(@{$current->{m}},$_);
+		}
+	}
+	push(@clause,$current);
+	return @clause;
+}
+
+sub printheader {
+	print "#Yomitori-1.0\n";
+	foreach (sort keys %INFO) {
+		next if /^_/;
+		print join(" ","#",$_,$INFO{$_}),"\n" if $INFO{$_};
+	}
+	print "#\n";	
+}
+
+END {
+	unlink($userdict) if $userdict;
+}
+sub cleanup {
+	exit;
+}

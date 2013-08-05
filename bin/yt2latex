@@ -1,0 +1,100 @@
+#!/usr/bin/env perl -CADS
+#
+# yt2latex: convert a glossed file into LaTeX source suitable
+# for processing with pLaTeX (tested with TeXLive 2013), called
+# with the "-kanji=utf8" option. By default, the output will
+# be sized for the Kindle.
+#
+# TODO: support other paper sizes
+
+require 5.10.1;
+use strict;
+use warnings;
+use utf8;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+
+readconfig();
+my %INFO = (
+	title => "",
+	author => "",
+	year => "",
+	series => "",
+	_done => 0,
+);
+
+while (<>) {
+	chomp;
+	if ($. == 1 and /^#Yomitori-1/) {
+		# scan for file metadata lines
+		while (<>) {
+			last unless /^#/;
+			my ($k,$v) = /^#\s*(\S+)\s+(.*)$/;
+			$INFO{$k} = $v if $v;
+		}
+	}
+	if (! $INFO{_done}) {
+		printheader();
+		$INFO{_done} = 1;
+	}
+	# fix ellipsis
+	s/[･.]{3}/\N{U+2026}/g;
+	if (/^\s*$/) {
+		#TODO: replace this hack with some real styling
+		print '\vspace{2em}',"\n";
+	}else{
+		s/$YTREGEXP/dometa($1)/ego;
+		print "$_\n\n";
+	}
+}
+print "\\end{document}\n";
+exit 0;
+
+sub dometa {
+	my $meta = parsemeta($_[0]);
+	my $id = $meta->{id};
+	my $word = $meta->{word};
+	my $reading = $meta->{reading};
+	if ($id) {
+		if ($reading) {
+			return "\\aruby{\\label{$id}\\special{::tag $id}$word}{$reading}";
+		}else{
+			return "$word\\label{$id}";
+		}
+	}elsif ($reading) {
+		return "\\ruby{$word}{$reading}";
+	}else{
+		return $word;
+	}
+}
+
+sub printheader {
+	print <<'EOF';
+\documentclass[12pt,oneside,openany,tate]{utbook}
+%geometry package is not compatible with vertical Japanese books; the
+%boxes run the wrong way.
+\setlength\paperheight {115mm}
+\setlength\paperwidth {90mm}
+\setlength{\topmargin}{-3.25cm}
+\setlength{\oddsidemargin}{-2.4cm}
+\setlength{\evensidemargin}{-2.4cm}
+\setlength{\textwidth}{10.5cm} % height
+\setlength{\textheight}{8.5cm} % width
+
+\RequirePackage{verbatim}
+\setlength\parindent{0pt}
+\usepackage{pxrubrica}\rubysetup{<g>}
+\raggedbottom
+%overkill, but use this to provide title/author metadata in PDF...
+\usepackage[dvipdfmx,bookmarks=false]{hyperref}
+\usepackage[dvipdfmx,tounicode]{pxjahyper}
+\sloppy
+\begin{document}
+\pagestyle{empty}
+EOF
+	print '\hypersetup{'
+		. sprintf("pdftitle={%s}",$INFO{title})
+		. sprintf(",pdfauthor={%s}",$INFO{author})
+		. "}\n";
+}
