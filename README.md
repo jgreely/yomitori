@@ -59,3 +59,6 @@ TODO
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
 * explain the tricky bits
+* make ytgloss/ytknown preserve glossing for known word with variant kanji
+  (ex: Unidic reports 提げる as 下げる; JMdict glosses them differently,
+  but since I lookup by dictform first, I merge them together)

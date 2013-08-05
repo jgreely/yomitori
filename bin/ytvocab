@@ -31,8 +31,19 @@ usage: $0 [--verbose] [--texfile file] [--output string] [file...]
 EOF
 $OUTPUT = "latex" if $OPT_L;
 
+my %INFO = (title => "", author => "");
 my %seen;
 while (<>) {
+	if ($. == 1 and /^#Yomitori-1/) {
+		# scan for file metadata lines
+		while (<>) {
+			last unless /^#/;
+			my ($k,$v) = /^#\s*(\S+)\s+(.*)$/;
+			# command-line title/author win!
+			$INFO{$k} = $v if $v and ! $INFO{$k};
+		}
+		$INFO{title} = "vocab" unless $INFO{title};
+	}
 	s/$YTREGEXP/dometa($1)/ego;
 }
 
@@ -133,7 +144,10 @@ sub printheader {
 \begin{document}
 \pagestyle{empty}
 EOF
-#TODO: parse header for title/author
+	print '\hypersetup{'
+		. sprintf("pdftitle={%s}",$INFO{title})
+		. sprintf(",pdfauthor={%s}",$INFO{author})
+		. "}\n";
 }
 
 sub printtrailer {
