@@ -57,3 +57,4 @@ TODO
 * add decent path substitution to readconfig()
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
+* explain the tricky bits

@@ -1,4 +1,4 @@
-#!/j/bin/perl -CADS
+#!/usr/bin/env perl -CADS
 
 # dvicleanruby: for each page, strip out any repeated glosses.
 # relies on the precise behaviors of pLaTeX, pxrubrica, and

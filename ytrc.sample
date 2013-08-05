@@ -1,0 +1,11 @@
+unidic = /usr/local/lib/mecab/dic/unidic
+dict_index = /usr/local/Cellar/mecab/0.996/libexec/mecab/mecab-dict-index
+dviasm = /usr/local/texlive/2013/texmf-dist/scripts/dviasm/dviasm.py
+
+basedir = .
+libdir = lib
+bindir = bin
+
+knownwords = known.txt,known-user.txt
+glosswords = gloss.txt,gloss-user.txt
+userdict = userdict.txt
