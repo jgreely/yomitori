@@ -42,15 +42,16 @@ Basic Usage
         ytknown -k known.txt -g gloss.txt > foo.yt
     ytruby foo.yt | yt2latex > foo.tex
     uplatex foo.tex
-    ytvocab -t foo.aux foo.yt > foo-vocab.txt
     dvicleanruby foo.dvi
     dvipdfmx foo.dvi
+    ytvocab -t foo.aux -l foo.yt > foo-vocab.tex
+	uplatex foo-vocab.tex
+	dvipdfmx foo-vocab.dvi
 
 TODO
 ----
 
 * document the config file and known/gloss/userdict files, with samples
-* add upLaTeX output to ytvocab (reimplement old code)
 * add yt2html with jquery-based glossing (clean up old code)
 * add ab2yt to convert Aozora Bunko markup (clean up old code)
 * add yt2odt (clean up old code)

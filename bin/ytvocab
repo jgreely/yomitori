@@ -15,14 +15,21 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 
 my $VERBOSE;
 my $TEXFILE;
+my $OUTPUT = "text";
+my $OPT_L;
 GetOptions(
 	"verbose|v" => \$VERBOSE,
 	"texfile|t=s" => \$TEXFILE,
+	"output-format|output|o=s" => \$OUTPUT,
+	"latex|l" => \$OPT_L,
 ) or die <<EOF;
-usage: $0 [--verbose] [--texfile file] [file...]
-	--verbose: print complete glosses instead of trimming
-	--texfile: incorporate page numbers from LaTeX aux file
+usage: $0 [--verbose] [--texfile file] [--output string] [file...]
+    --verbose: print complete glosses instead of trimming
+    --texfile: incorporate page numbers from LaTeX aux file
+    --output: generate output in latex|text (default text)
+	-l: shortcut for latex output
 EOF
+$OUTPUT = "latex" if $OPT_L;
 
 my %seen;
 while (<>) {
@@ -30,17 +37,18 @@ while (<>) {
 }
 
 if ($TEXFILE) {
-	my $curpage;
+	my $curpage = 0;
 	my @words;
 	open(In,$TEXFILE) or die "$0: $TEXFILE: $!\n";
+	printheader();
 	while (<In>) {
 		my ($id,$pagenum) = /^.newlabel{(id\d+)}{{\d*}{(\d+)}/;
 		next unless $id;
 		if ($curpage != $pagenum) {
 			if ($curpage and @words) {
-				print "PAGE $curpage\n";
+				printpagenum($curpage,scalar(@words));
 				printwords({count=>0},@words);
-				print "\n";
+				print "\n" if $OUTPUT eq "text";
 			}
 			@words = ();
 			$curpage = $pagenum;
@@ -49,9 +57,11 @@ if ($TEXFILE) {
 	}
 	close(In);
 	if ($curpage and @words) {
-		print "PAGE $curpage\n";
+		printpagenum($curpage,scalar(@words));
 		printwords({count=>0},uniq(@words));
+		print "\\end{description}\n" if $OUTPUT eq "latex";
 	}
+	printtrailer();
 }else{
 	printwords({count=>1},sort keys %seen);
 }
@@ -60,6 +70,18 @@ exit 0;
 sub uniq {
 	my %tmp;
 	return grep(!$tmp{$_}++,@_);
+}
+
+sub printpagenum {
+	my ($page,$count) = @_;
+	if ($OUTPUT eq "text") {
+		print "PAGE $page ($count)\n";
+	}elsif ($OUTPUT eq "latex") {
+		print "\\end{description}\n\n" if $page > 1;
+		print "{\\large Page $page ($count)}\n\\begin{description}\n";
+	}else{
+		die "$0: unknown output format '$OUTPUT'\n";
+	}
 }
 
 sub printwords {
@@ -73,14 +95,50 @@ sub printwords {
 		}
 		$reading = "" if $reading and kata2hira($word) eq kata2hira($reading);
 		my ($shortid) = $id =~ /^id0+(\d+)$/;
-		if ($VERBOSE) {
-			print $id,"\t";
+		if ($OUTPUT eq "latex") {
+			print "\\item[$word";
+			print "/ $reading" if $word ne $reading;
+			print "]\\hfill \\\\*\n{\\small ",$seen{$id}->{gloss},"}\n";
+		}elsif ($OUTPUT eq "text") {
+			print $id,"\t" if $VERBOSE;
+			print $seen{$id}->{count},"\t" if $options->{count};
+			print join("\t",$word,$reading,$seen{$id}->{gloss}),"\n";
+		}else{
+			die "$0: unknown output format '$OUTPUT'\n";
 		}
-		if ($options->{count}) {
-			print $seen{$id}->{count},"\t";
-		}
-		print join("\t",$word,$reading,$seen{$id}->{gloss}),"\n";
 	}
+}
+
+sub printheader {
+	return unless $OUTPUT eq "latex";
+	print <<'EOF';
+\documentclass[12pt,oneside,openany]{ujbook}
+\setlength\paperheight {115mm}
+\setlength\paperwidth {90mm}
+\setlength{\topmargin}{-3.25cm}
+\setlength{\oddsidemargin}{-2.4cm}
+\setlength{\evensidemargin}{-2.4cm}
+\setlength{\textwidth}{8.5cm}
+\setlength{\textheight}{10.5cm}
+
+% hack the list environment for the small page
+\renewcommand*\descriptionlabel[1]{\hspace\labelsep
+    \normalfont\rmfamily #1}
+\setlength\leftmargini{12pt}
+
+%overkill, but use this to provide title/author metadata in PDF...
+\usepackage[dvipdfmx,bookmarks=false]{hyperref}
+\usepackage[dvipdfmx,tounicode]{pxjahyper}
+\sloppy
+\begin{document}
+\pagestyle{empty}
+EOF
+#TODO: parse header for title/author
+}
+
+sub printtrailer {
+	return unless $OUTPUT eq "latex";
+	print "\\end{document}\n";
 }
 
 sub dometa {
@@ -91,6 +149,8 @@ sub dometa {
 		}else{
 			substr($meta->{gloss},60) = " ..."
 				if !$VERBOSE and length($meta->{gloss}) > 60;
+			$meta->{gloss} =~ s/\^/\\textasciicircum /g
+				if $OUTPUT eq "latex";
 			$seen{$meta->{id}} = $meta;
 			$seen{$meta->{id}}->{count} = 1;
 		}
