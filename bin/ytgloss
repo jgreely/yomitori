@@ -75,7 +75,11 @@ if (@userdict) {
 	foreach my $file (@userdict) {
 		open(In,$file) or die "$0: $file: $!\n";
 		if ($file =~ /\.csv$/) {
-			print Out <In>;
+			while (<In>) {
+				#mecab-dict-index can't handle comments and blank lines
+				next if /^\s*#|^\s*$/;
+				print Out;
+			}
 			close(In);
 			next;
 		}
