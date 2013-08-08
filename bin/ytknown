@@ -68,7 +68,7 @@ sub dometa {
 			return $meta->{word};
 		}else{
 			return makemeta({word => $meta->{word},
-				reading => $meta->{reading}});
+				reading => $meta->{reading}, id => $meta->{id}});
 		}
 	}elsif ($skip eq "skip") {
 		return $meta->{word};

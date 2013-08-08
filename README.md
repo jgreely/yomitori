@@ -37,6 +37,7 @@ Tools
 Basic Usage
 -----------
 
+	kanji-config-updmap auto
 	ytmakedict
     ytgloss -u userdict.txt foo.txt |
         ytknown -k known.txt -g gloss.txt > foo.yt

@@ -169,7 +169,13 @@ sub makemeta {
 		and kata2hira($word->{word}) ne kata2hira($word->{reading});
 	$result .= " D=" . $word->{dictform} if $word->{dictform};
 	$result .= " R=" . $word->{dictreading} if $word->{dictreading};
-	$result .= " I=" . sprintf("id%06d",$word->{id}) if $word->{id};
+	if ($word->{id}) {
+		if ($word->{id} =~ /^id/) {
+			$result .= " I=" . $word->{id};
+		}else{
+			$result .= " I=" . sprintf("id%06d",$word->{id});
+		}
+	}
 	$result .= " G=" . $word->{gloss} if $word->{gloss};
 	return $result . "}";
 }
