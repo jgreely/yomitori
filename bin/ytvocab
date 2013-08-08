@@ -58,7 +58,7 @@ if ($TEXFILE) {
 		if ($curpage != $pagenum) {
 			if ($curpage and @words) {
 				printpagenum($curpage,scalar(@words));
-				printwords({count=>0},@words);
+				printwords({count=>0},uniq(@words));
 				print "\n" if $OUTPUT eq "text";
 			}
 			@words = ();
@@ -108,7 +108,7 @@ sub printwords {
 		my ($shortid) = $id =~ /^id0+(\d+)$/;
 		if ($OUTPUT eq "latex") {
 			print "\\item[$word";
-			print "/ $reading" if $word ne $reading;
+			print " / $reading" if $reading and $word ne $reading;
 			print "]\\hfill \\\\*\n{\\small ",$seen{$id}->{gloss},"}\n";
 		}elsif ($OUTPUT eq "text") {
 			print $id,"\t" if $VERBOSE;

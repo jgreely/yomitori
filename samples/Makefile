@@ -14,5 +14,5 @@ B=../bin
 clean:
 	@rm -f *.yt *.tex *.aux *.log *.dvi *.dvi* *.dump *~
 
-reallyclean: clean
-	@rm *.pdf
+realclean: clean
+	@rm -f *.pdf
