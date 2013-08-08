@@ -57,7 +57,7 @@ if ($TEXFILE) {
 		next unless $id;
 		if ($curpage != $pagenum) {
 			if ($curpage and @words) {
-				my @tmp = uniq(@words);
+				my @tmp = grep($seen{$_}->{gloss} ne "",uniq(@words));
 				printpagenum($curpage,scalar(@tmp));
 				printwords({count=>0},@tmp);
 				print "\n" if $OUTPUT eq "text";
@@ -69,7 +69,7 @@ if ($TEXFILE) {
 	}
 	close(In);
 	if ($curpage and @words) {
-		my @tmp = uniq(@words);
+		my @tmp = grep($seen{$_}->{gloss} ne "",uniq(@words));
 		printpagenum($curpage,scalar(@tmp));
 		printwords({count=>0},@tmp);
 		print "\\end{description}\n" if $OUTPUT eq "latex";
