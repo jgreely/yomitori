@@ -57,8 +57,9 @@ if ($TEXFILE) {
 		next unless $id;
 		if ($curpage != $pagenum) {
 			if ($curpage and @words) {
-				printpagenum($curpage,scalar(@words));
-				printwords({count=>0},uniq(@words));
+				my @tmp = uniq(@words);
+				printpagenum($curpage,scalar(@tmp));
+				printwords({count=>0},@tmp);
 				print "\n" if $OUTPUT eq "text";
 			}
 			@words = ();
@@ -68,8 +69,9 @@ if ($TEXFILE) {
 	}
 	close(In);
 	if ($curpage and @words) {
-		printpagenum($curpage,scalar(@words));
-		printwords({count=>0},uniq(@words));
+		my @tmp = uniq(@words);
+		printpagenum($curpage,scalar(@tmp));
+		printwords({count=>0},@tmp);
 		print "\\end{description}\n" if $OUTPUT eq "latex";
 	}
 	printtrailer();
@@ -88,7 +90,7 @@ sub printpagenum {
 	if ($OUTPUT eq "text") {
 		print "PAGE $page ($count)\n";
 	}elsif ($OUTPUT eq "latex") {
-		print "\\end{description}\n\n" if $page > 1;
+		print "\\end{description}\n\\newpage\n" if $page > 1;
 		print "{\\large Page $page ($count)}\n\\begin{description}\n";
 	}else{
 		die "$0: unknown output format '$OUTPUT'\n";
@@ -123,7 +125,7 @@ sub printwords {
 sub printheader {
 	return unless $OUTPUT eq "latex";
 	print <<'EOF';
-\documentclass[12pt,oneside,openany]{ujbook}
+\documentclass[oneside,openany]{ujbook}
 \setlength\paperheight {115mm}
 \setlength\paperwidth {90mm}
 \setlength{\topmargin}{-3.25cm}
@@ -135,7 +137,7 @@ sub printheader {
 % hack the list environment for the small page
 \renewcommand*\descriptionlabel[1]{\hspace\labelsep
     \normalfont\rmfamily #1}
-\setlength\leftmargini{12pt}
+\setlength\leftmargini{10pt}
 
 %overkill, but use this to provide title/author metadata in PDF...
 \usepackage[dvipdfmx,bookmarks=false]{hyperref}
