@@ -94,8 +94,8 @@ if (@userdict) {
 			print Out "$word,0,0,100,名詞,固有名詞,人名,姓,*,*,",
 				"$reading,$reading,$word,$reading,$word,$reading,和,*,*,*,*\n";
 		}
-		close(Out);
 	}
+	close(Out);
 	system("$DICT_INDEX -u $userdict $src > /dev/null 2>&1");
 	unlink($src);
 }
@@ -152,7 +152,7 @@ while (<>) {
 			# generating ridiculous false positives like "to naru"
 			# for unrelated expressions like "to naridasu".
 			if ($m[0]->{p1} eq "助詞"
-				and grep ($m[0]->{sf} eq $_,qw(の に は が で と))) {
+				and grep ($m[0]->{sf} eq $_,qw(の に は が で と も))) {
 				print $m[0]->{sf};
 				shift(@m);
 				next;
