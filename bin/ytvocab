@@ -165,8 +165,11 @@ sub dometa {
 		}else{
 			substr($meta->{gloss},60) = " ..."
 				if !$VERBOSE and length($meta->{gloss}) > 60;
-			$meta->{gloss} =~ s/\^/\\textasciicircum /g
-				if $OUTPUT eq "latex";
+			if ($OUTPUT eq "latex") {
+				$meta->{gloss} =~ s/\^/\\textasciicircum{}/g;
+				$meta->{gloss} =~ s/~/\textasciitilde{}/g;
+				$meta->{gloss} =~ s/([\#\%\&\_\$])/\\$1/g;
+			}
 			$seen{$meta->{id}} = $meta;
 			$seen{$meta->{id}}->{count} = 1;
 		}

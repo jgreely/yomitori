@@ -67,3 +67,9 @@ TODO
 * make ytgloss/ytknown preserve glossing for known word with variant kanji
   (ex: Unidic reports 提げる as 下げる; JMdict glosses them differently,
   but since I lookup by dictform first, I merge them together)
+* fix common false-positive in ytgloss: when looking up expressions by
+  dictreading only, if they include a particle, make sure that the
+  dictform of a successful lookup includes that particle as hiragana.
+  That should not only handle cases like "kara neko" matching 唐猫,
+  but also get rid of some code that prevents matching some expressions
+  that include particles.
