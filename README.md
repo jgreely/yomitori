@@ -45,9 +45,12 @@ Basic Usage
     uplatex foo.tex
     dvicleanruby foo.dvi
     dvipdfmx foo.dvi
+
     ytvocab -t foo.aux -l foo.yt > foo-vocab.tex
 	uplatex foo-vocab.tex
 	dvipdfmx foo-vocab.dvi
+
+    ytruby foo.yt | yt2odt -o foo.odt
 
 TODO
 ----
@@ -55,7 +58,6 @@ TODO
 * document the config file and known/gloss/userdict files, with samples
 * add yt2html with jquery-based glossing (clean up old code)
 * add ab2yt to convert Aozora Bunko markup (clean up old code)
-* add yt2odt (clean up old code)
 * add yt2word (clean up old code)
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output

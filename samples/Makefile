@@ -10,9 +10,10 @@ B=../bin
 	$B/ytvocab -t $@.aux -l $@.yt > $@-vocab.tex
 	uplatex $@-vocab.tex > /dev/null
 	dvipdfmx -q $@-vocab.dvi
+	$B/ytruby $@.yt | $B/yt2odt -o $@.odt
 
 clean:
 	@rm -f *.yt *.tex *.aux *.log *.dvi *.dvi* *.dump *~
 
 realclean: clean
-	@rm -f *.pdf
+	@rm -f *.pdf *.odt

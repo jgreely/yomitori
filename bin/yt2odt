@@ -1,0 +1,97 @@
+#!/usr/bin/env perl -CADS
+#
+# yt2odt: convert a glossed file into an OpenOffice document,
+# with basic Ruby markup.
+
+require 5.10.1;
+use strict;
+use warnings;
+use utf8;
+use Archive::Zip;
+use Getopt::Long qw(:config no_ignore_case bundling);
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+
+readconfig();
+my $OUT = "yt.odt";
+GetOptions("output-file|output|o=s" => \$OUT)
+	or die "usage: $0 [--output file.odt] [file ...]\n";
+
+my %INFO = (
+	title => "",
+	author => "",
+	year => "",
+	series => "",
+	_done => 0,
+);
+
+my $odt = Archive::Zip->new;
+my $xml;
+my $blanklines = 0;
+while (<>) {
+	chomp;
+	if ($. == 1 and /^#Yomitori-1/) {
+		# scan for file metadata lines
+		while (<>) {
+			last unless /^#/;
+			my ($k,$v) = /^#\s*(\S+)\s+(.*)$/;
+			$INFO{$k} = $v if $v;
+		}
+	}
+	if (! $INFO{_done}) {
+		$INFO{_done} = 1;
+	}
+	if (/^\s*$/) {
+		$blanklines++;
+	}else{
+		s/$YTREGEXP/dometa($1)/ego;
+		$xml .= "<text:p/>" x $blanklines;
+		$xml .= "<text:p>$_</text:p>\n";
+		$blanklines = 0;
+	}
+}
+
+$odt->addString("application/vnd.oasis.opendocument.text","mimetype");
+$odt->addDirectory("META-INF/");
+$odt->addString(<<EOF,"META-INF/manifest.xml");
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest:manifest
+ xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0">
+ <manifest:file-entry
+  manifest:media-type="application/vnd.oasis.opendocument.text"
+  manifest:version="1.2" manifest:full-path="/"/>
+ <manifest:file-entry manifest:media-type="text/xml"
+  manifest:full-path="content.xml"/>
+</manifest:manifest>
+EOF
+
+my $header = <<EOF;
+<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+  xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+  xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+<office:body><office:text>
+EOF
+my $footer = <<EOF;
+</office:text></office:body></office:document-content>
+EOF
+{
+	use bytes; # workaround CRC32 bug in Archive::Zip
+	$odt->addString($header . $xml . $footer,"content.xml");
+}
+$odt->writeToFileNamed($OUT);
+
+exit 0;
+
+sub dometa {
+	my $meta = parsemeta($_[0]);
+	my $word = $meta->{word};
+	my $reading = $meta->{reading};
+	if ($reading) {
+		return "<text:ruby><text:ruby-base>$word</text:ruby-base>"
+			. "<text:ruby-text>$reading</text:ruby-text></text:ruby>";
+	}else{
+		return $word;
+	}
+}
