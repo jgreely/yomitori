@@ -26,6 +26,8 @@ Tools
 * ytruby: convert the embedded readings into proper furigana by stripping
   out leading, trailing, and interior kana
 * yt2latex: format a document for processing with upLaTeX
+* yt2odt: convert to LibreOffice/OpenOffice, with basic ruby support
+* yt2word: convert to Word HTML, with vertical text and basic ruby support
 * dvicleanruby: use dviasm.py to strip furigana that appear more than
   once per page.
 * ytvocab: extract a vocabulary list from a document, incorporating
@@ -51,6 +53,7 @@ Basic Usage
 	dvipdfmx foo-vocab.dvi
 
     ytruby foo.yt | yt2odt -o foo.odt
+    ytruby foo.yt | yt2word > foo.doc
 
 TODO
 ----
@@ -58,7 +61,6 @@ TODO
 * document the config file and known/gloss/userdict files, with samples
 * add yt2html with jquery-based glossing (clean up old code)
 * add ab2yt to convert Aozora Bunko markup (clean up old code)
-* add yt2word (clean up old code)
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
 * explain the tricky bits

@@ -1,0 +1,117 @@
+#!/usr/bin/env perl -CADS
+#
+# yt2word: convert a glossed file into a Word HTML document,
+# with basic Ruby markup. Word does the write thing when you
+# feed it a .doc file that's actually HTML.
+
+require 5.10.1;
+use strict;
+use warnings;
+use utf8;
+use Getopt::Long qw(:config no_ignore_case bundling);
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+
+readconfig();
+my $VERTICAL;
+my $FONTSIZE = 14;
+my $RUBYSIZE = $FONTSIZE / 2;
+GetOptions(
+	"vertical-text|vertical|v" => \$VERTICAL,
+	"font-size|f=f" => \$FONTSIZE,
+	"ruby-size|r=f" => \$RUBYSIZE,
+) or die <<EOF;
+usage: $0 [options] [file ...]
+    --vertical-text: set vertical text on a landscape page
+    --font-size: text font size
+    --ruby-size: ruby font size (hard to edit later in Word)
+EOF
+
+my %INFO = (
+	title => "",
+	author => "",
+	year => "",
+	series => "",
+	_done => 0,
+);
+
+my $LEADING = $FONTSIZE + $RUBYSIZE + 3;
+
+my $pagesize = "size:8.5in 11.0in;\n";
+$pagesize = <<EOF if $VERTICAL;
+size:11in 8.5in;
+mso-page-orientation:landscape;
+layout-flow:vertical-ideographic;
+EOF
+
+print <<EOF;
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style>
+div.blank {
+	font-size:${FONTSIZE}pt;
+	line-height:${LEADING}pt;
+	mso-line-height-rule:exactly;
+}
+p {
+	font-family:"MS Mincho";
+	font-size:${FONTSIZE}pt;
+	line-height:${LEADING}pt;
+	mso-line-height-rule:exactly;
+}
+rt {
+	font-family:"MS Mincho";
+	font-size:${RUBYSIZE}pt;
+}
+\@page Section1 {
+	margin:.5in .5in .5in .5in;
+	$pagesize
+	mso-header-margin:.4in;
+	mso-footer-margin:.5in;
+}
+div.Section1 {
+	page:Section1;
+}
+</style></head><body><div class="Section1">
+EOF
+
+my $blanklines = 0;
+while (<>) {
+	chomp;
+	if ($. == 1 and /^#Yomitori-1/) {
+		# scan for file metadata lines
+		while (<>) {
+			last unless /^#/;
+			my ($k,$v) = /^#\s*(\S+)\s+(.*)$/;
+			$INFO{$k} = $v if $v;
+		}
+	}
+	if (! $INFO{_done}) {
+		$INFO{_done} = 1;
+	}
+	if (/^\s*$/) {
+		$blanklines++;
+	}else{
+		s/$YTREGEXP/dometa($1)/ego;
+		#why use divs? Because Word ignores margin-top, br produces
+		#the wrong line height, and empty paragraphs get numbers. Feh.
+		print qq{<div class='blank'>&nbsp;</div>} x $blanklines;;
+		print "<p>$_</p>\n";
+		$blanklines = 0;
+	}
+}
+print "</div></body></html>\n";
+
+exit 0;
+
+sub dometa {
+	my $meta = parsemeta($_[0]);
+	my $word = $meta->{word};
+	my $reading = $meta->{reading};
+	if ($reading) {
+		return "<ruby><rb>$word</rb><rt>$reading</rt></ruby>";
+	}else{
+		return $word;
+	}
+}
