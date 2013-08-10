@@ -216,7 +216,16 @@ while (<>) {
 					$fluff++;
 				}
 				if ($fluff == $n + 1) {
-					print $sf;
+					# just provide ruby if there are kanji
+					foreach my $m (@m[0..$n]) {
+						if (! $m->{sf}) {
+							#do nothing
+						}elsif (allkana($m->{sf})) {
+							print $m->{sf};
+						}else{
+							printglossword($m->{sf},$m->{sr},"" x 3);
+						}
+					}
 					splice(@m,0,$n+1);
 					last;
 				}

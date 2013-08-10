@@ -58,7 +58,7 @@ sub readconfig {
 			tmpdir => "/tmp",
 			knownwords => "known.txt,known-user.txt",
 			glosswords => "gloss.txt,gloss-user.txt",
-			userdict => "userdict.txt",
+			userdict => "userdict.txt,userdict.csv",
 		);
 	}else{
 		open(In,"$HOME/.ytrc") or die "$0: $HOME/.ytrc: $!\n";
