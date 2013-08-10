@@ -48,13 +48,14 @@ sub readconfig {
 	my $HOME = $ENV{HOME};
 	if (! -f "$HOME/.ytrc") {
 		my $PREFIX = "/usr/local";
+		my $BASEDIR = "$RealBin/..";
 		%YT = (
 			unidic => "$PREFIX/lib/mecab/dic/unidic",
 			dict_index => "$PREFIX/libexec/mecab/mecab-dict-index",
 			dviasm => "$PREFIX/texlive/2013/texmf-dist/scripts/dviasm/dviasm.py",
-			basedir => ".",
-			libdir => "lib",
-			bindir => "bin",
+			basedir => $BASEDIR,
+			libdir => "$BASEDIR/lib",
+			bindir => "$BASEDIR/bin",
 			tmpdir => "/tmp",
 			knownwords => "known.txt,known-user.txt",
 			glosswords => "gloss.txt,gloss-user.txt",
