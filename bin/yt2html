@@ -1,0 +1,127 @@
+#!/usr/bin/env perl -CADS
+#
+# yt2html: convert a glossed file into HTML, with ruby markup
+# and jQueryUI-based tooltips
+#
+# TODO: allow alternate URL for jQuery/jQueryUI/CSS
+# TODO: incorporate ytruby code to provide proper furigana,
+# and move the tooltips to a <span> that surrounds the entire
+# word.
+
+require 5.10.1;
+use strict;
+use warnings;
+use utf8;
+use Getopt::Long qw(:config no_ignore_case bundling);
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+
+readconfig();
+
+my %INFO = (
+	title => "",
+	author => "",
+	year => "",
+	series => "",
+);
+
+my $html;
+my $blanklines = 0;
+my %vocab;
+while (<>) {
+	chomp;
+	if ($. == 1 and /^#Yomitori-1/) {
+		# scan for file metadata lines
+		while (<>) {
+			last unless /^#/;
+			my ($k,$v) = /^#\s*(\S+)\s+(.*)$/;
+			$INFO{$k} = $v if $v;
+		}
+	}
+	if (/^\s*$/) {
+		$blanklines++;
+	}else{
+		s/$YTREGEXP/dometa($1)/ego;
+		$html .= "<p/>" x $blanklines;
+		$html .= "<p>$_</p>\n";
+		$blanklines = 0;
+	}
+}
+
+print <<'EOF';
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/pepper-grinder/jquery-ui.min.css">
+<script>
+$(function() {
+	$( document ).tooltip({
+		items: "ruby[id]",
+		collision: "none",
+		position: {at: "left top-10", my:"left bottom"},
+		content: function() {return vocab[$(this).attr("id")];}
+	});
+});
+</script>
+EOF
+
+my @vocab;
+foreach my $id (sort keys %vocab) {
+	$vocab{$id} =~ s/"/\\"/g;
+	push(@vocab,qq($id:"$vocab{$id}"));
+}
+print "<script>var vocab = {\n",join(",\n",@vocab),"\n};</script>\n";
+
+print <<EOF;
+<style>
+body {font-size:14pt;line-height:28pt;padding:24pt}
+ruby[id] {border-bottom:1px dotted #B0B0B0}
+h1 {font-size:1.2em}
+h2 {font-weight:normal;font-size:1.2em}
+h3 {font-weight:normal;font-size:1em}
+p {margin:0;width:32em}
+rt {font-size:0.6em}
+.ui-tooltip-content {font-size:12pt;line-height:15pt}
+</style>
+</head>
+<body>
+EOF
+
+print $html;
+print "</body></html>\n";
+
+exit 0;
+
+sub dometa {
+	my $meta = parsemeta($_[0]);
+	my $id = $meta->{id};
+	my $word = $meta->{word};
+	my $reading = $meta->{reading};
+	my $gloss = $vocab{$id} || $meta->{gloss};
+	my $dictform = $meta->{dictform} || $word;
+	my $dictreading = $meta->{dictreading} || $reading;
+	if ($gloss and ! $vocab{$id}) {
+		if ($dictform ne $dictreading) {
+			$vocab{$id} = "$dictform（$dictreading）<hr>$gloss";
+		}else{
+			$vocab{$id} = "$dictform<hr>$gloss";
+		}
+	}
+	if ($id and $vocab{$id}) {
+		if ($reading and $word ne $reading) {
+			return qq(<ruby id="$id"><rb>$word</rb><rt>$reading</rt></ruby>);
+		}else{
+			return qq(<ruby id="$id">$word</ruby>);
+		}
+	}else{
+		if ($reading) {
+			return "<ruby><rb>$word</rb><rt>$reading</rt></ruby>";
+		}else{
+			return $word;
+		}
+	}
+}

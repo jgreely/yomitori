@@ -2,20 +2,25 @@ yomitori
 ========
 
 Tools to generate custom student editions of Japanese texts.
-Default output is Kindle-sized PDF files. This is very much
-a work in progress, and no matter how messy it looks, trust
-me that it's far better than the version I've been reading
-novels with for the past two years.
+Default output is Kindle-sized PDF files, but HTML, Word, and
+LibreOffice are also supported. This is very much a work in
+progress, and no matter how messy it looks, trust me that it's
+far better than the version I've been reading novels with for
+the past two years.
 
 Requirements
 ------------
 
-* Perl 5.10.1+ with DBI, DBD::SQLite, Text::MeCab, XML::Twig
-* [TeXLive 2013](http://www.tug.org/texlive/)
+* Perl 5.10.1+ with DBI, DBD::SQLite, Text::MeCab, XML::Twig, Archive::Zip
+* [JMdict and JMnedict](http://www.edrdg.org/)
 * [MeCab](https://code.google.com/p/mecab/)
 * [Unidic](http://en.sourceforge.jp/projects/unidic/)
-* dviasm.py (distributed with TeXLive)
-* [JMdict and JMnedict](http://www.edrdg.org/)
+* [TeXLive 2013](http://www.tug.org/texlive/)
+* [dviasm.py](http://www.ctan.org/tex-archive/dviware/dviasm)
+  (distributed with TeXLive)
+* [jQuery](http://jquery.com/), [jQueryUI](http://jqueryui.com/),
+  and a [UI theme](http://jqueryui.com/themeroller/), if you don't
+  want to just use Google-hosted versions.
 
 Tools
 -----
@@ -28,6 +33,7 @@ Tools
 * yt2latex: format a document for processing with upLaTeX
 * yt2odt: convert to LibreOffice/OpenOffice, with basic ruby support
 * yt2word: convert to Word HTML, with vertical text and basic ruby support
+* yt2html: convert to HTML with ruby tags and jQueryUI-based tooltips
 * dvicleanruby: use dviasm.py to strip furigana that appear more than
   once per page.
 * ytvocab: extract a vocabulary list from a document, incorporating
@@ -54,12 +60,15 @@ Basic Usage
 
     ytruby foo.yt | yt2odt -o foo.odt
     ytruby foo.yt | yt2word > foo.doc
+	yt2html foo.yt > foo.html
 
 TODO
 ----
 
 * document the config file and known/gloss/userdict files, with samples
-* add yt2html with jquery-based glossing (clean up old code)
+* yt2html: incorporate ytruby and decent CSS
+* yt2html: allow use of local/different jQuery/jQueryUI/theme (default 
+  is Google CDN and Pepper Grinder theme)
 * add ab2yt to convert Aozora Bunko markup (clean up old code)
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
@@ -75,11 +84,10 @@ TODO
   That should not only handle cases like "kara neko" matching 唐猫,
   but also get rid of some code that prevents matching some expressions
   that include particles.
-* ytruby bug: {聞き込み|ききこみ} becomes {聞|}き{込|}み
-* ytruby bug: fails to remove internal kana from {結論を下す|けつろんをくだす},
-  returning {結論を下|けつろんをくだ}す
 * ytgloss bug: should catch もしかすると as expression
 * Unidic glitch: can't match いつの間にか because Unidic returns あいだ
   as the reading for 間; this is probably like getting た for 他 in
   too many contexts, sigh.
 * Unidic glitch: 今日一日, returns ついたち instead of いちにち
+* small tool to more easily override Unidic glitches; writing Perl
+  one-liners to extract and modify the existing records gets old fast.

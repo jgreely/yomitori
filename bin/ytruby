@@ -66,7 +66,7 @@ sub stripruby {
 	# make a stab at removing interior kana as well, attaching
 	# the id tag to the first half.
 	#
-	if ($k =~ /^\P{InKana}\p{InKana}+\P{InKana}$/) {
+	if ($k =~ /^\P{InKana}+\p{InKana}+\P{InKana}+$/) {
 		my ($k1,$k2,$k3) = split(/(\p{InKana}+)/,$k,3);
 		if (defined $k3) {
 			# two bogons:
@@ -78,7 +78,7 @@ sub stripruby {
 			}elsif (grep($ktmp eq $_,qw(カ ケ ヶ ヵ))) {
 				$ktmp = '[かが]';
 			}
-			my ($r1,$r2,$r3) = split(/($ktmp)/,$r,3);
+			my ($r1,$r2,$r3) = $r =~ /^(.+)($ktmp)(.+)$/;
 		    if ($id) {
 		        return sprintf("%s{%s|%s I=%s}%s{%s|%s}%s",
 					$kp,$k1,$r1,$id,$k2,$k3,$r3,$ks);
