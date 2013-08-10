@@ -64,12 +64,22 @@ TODO
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
 * explain the tricky bits
-* make ytgloss/ytknown preserve glossing for known word with variant kanji
-  (ex: Unidic reports 提げる as 下げる; JMdict glosses them differently,
-  but since I lookup by dictform first, I merge them together)
+* make ytgloss/ytknown preserve glossing for known word with variant kanji.
+  Ex: Unidic reports 提げる as 下げる; JMdict glosses them differently,
+  but since I lookup by dictform first, I merge them together; ditto for
+  殺る as やる, 訊き as 聞く, etc. 高飛び gets the wrong gloss because
+  of this, because Unidic normalizes to 高跳び.
 * fix common false-positive in ytgloss: when looking up expressions by
   dictreading only, if they include a particle, make sure that the
   dictform of a successful lookup includes that particle as hiragana.
   That should not only handle cases like "kara neko" matching 唐猫,
   but also get rid of some code that prevents matching some expressions
   that include particles.
+* ytruby bug: {聞き込み|ききこみ} becomes {聞|}き{込|}み
+* ytruby bug: fails to remove internal kana from {結論を下す|けつろんをくだす},
+  returning {結論を下|けつろんをくだ}す
+* ytgloss bug: should catch もしかすると as expression
+* Unidic glitch: can't match いつの間にか because Unidic returns あいだ
+  as the reading for 間; this is probably like getting た for 他 in
+  too many contexts, sigh.
+* Unidic glitch: 今日一日, returns ついたち instead of いちにち

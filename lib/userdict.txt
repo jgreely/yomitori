@@ -12,3 +12,14 @@
 身体   からだ  body
 くいっと	[on-mim] in a single gulp; in one go
 大なり小なり	だいなりしょうなり	more or less
+
+#Unidic reads 日曜日 as two morphemes, にちよう and ひ; this prevents
+#assembly into にちようび. Just to be safe, I'm putting in all seven
+#days
+日曜日	にちようび	Sunday
+月曜日	げつようび	Monday
+火曜日	かようび	Tuesday
+水曜日	すいようび	Wednesday
+木曜日	もくようび	Thursday
+金曜日	きんようび	Friday
+土曜日	どようび	Saturday
