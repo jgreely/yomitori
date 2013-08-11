@@ -66,7 +66,7 @@ TODO
 ----
 
 * document the config file and known/gloss/userdict files, with samples
-* yt2html: incorporate ytruby and decent CSS
+* yt2html: use decent CSS styling
 * yt2html: allow use of local/different jQuery/jQueryUI/theme (default 
   is Google CDN and Pepper Grinder theme)
 * add ab2yt to convert Aozora Bunko markup (clean up old code)
@@ -76,7 +76,7 @@ TODO
 * make ytgloss/ytknown preserve glossing for known word with variant kanji.
   Ex: Unidic reports 提げる as 下げる; JMdict glosses them differently,
   but since I lookup by dictform first, I merge them together; ditto for
-  殺る as やる, 訊き as 聞く, etc. 高飛び gets the wrong gloss because
+  殺る as やる, 訊く as 聞く, etc. 高飛び gets the wrong gloss because
   of this, because Unidic normalizes to 高跳び.
 * fix common false-positive in ytgloss: when looking up expressions by
   dictreading only, if they include a particle, make sure that the

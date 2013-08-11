@@ -60,10 +60,10 @@ print <<'EOF';
 <script>
 $(function() {
 	$( document ).tooltip({
-		items: "ruby[id]",
+		items: "span[v]",
 		collision: "none",
-		position: {at: "left top-10", my:"left bottom"},
-		content: function() {return vocab[$(this).attr("id")];}
+		position: {at: "left bottom", my:"left top"},
+		content: function() {return vocab[$(this).attr("v")];}
 	});
 });
 </script>
@@ -79,7 +79,7 @@ print "<script>var vocab = {\n",join(",\n",@vocab),"\n};</script>\n";
 print <<EOF;
 <style>
 body {font-size:14pt;line-height:28pt;padding:24pt}
-ruby[id] {border-bottom:1px dotted #B0B0B0}
+span[v] {border-bottom:1px dotted #B0B0B0}
 h1 {font-size:1.2em}
 h2 {font-weight:normal;font-size:1.2em}
 h3 {font-weight:normal;font-size:1em}
@@ -113,9 +113,9 @@ sub dometa {
 	}
 	if ($id and $vocab{$id}) {
 		if ($reading and $word ne $reading) {
-			return qq(<ruby id="$id"><rb>$word</rb><rt>$reading</rt></ruby>);
+			return stripruby("html",$word,$reading,$id);
 		}else{
-			return qq(<ruby id="$id">$word</ruby>);
+			return qq(<span v="$id">$word</span>);
 		}
 	}else{
 		if ($reading) {

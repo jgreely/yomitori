@@ -18,6 +18,7 @@ our @EXPORT = qw(
 	hira2kata
 	parsemeta
 	makemeta
+	stripruby
 );
 use vars qw($VERSION);
 our $VERSION = '1.00';
@@ -179,6 +180,91 @@ sub makemeta {
 	}
 	$result .= " G=" . $word->{gloss} if $word->{gloss};
 	return $result . "}";
+}
+
+# strip out leading, trailing, and interior kana that match in
+# both strings, for better-looking ruby in Word/LaTeX.
+#
+sub stripruby {
+	my ($format,$kanji,$reading,$id) = @_;
+	my @k = split(//,$kanji);
+	my @r = split(//,$reading);
+	my $prefix = 1;
+	my ($kp,$rp,$k,$r,$ks,$rs);
+	map($_="",$kp,$rp,$k,$r,$ks,$rs);
+	foreach my $i (0..$#r) {
+		if ($prefix and $k[$i] =~ /^\p{InKana}$/) {
+			if ($k[$i] eq $r[$i]) {
+				$kp .= $k[$i];
+				$rp .= $r[$i];
+				next;
+			}
+		}
+		$prefix = 0;
+		$k .= $k[$i] if defined $k[$i];
+		$r .= $r[$i] if defined $r[$i];
+	}
+	@k = split(//,$k);
+	@r = split(//,$r);
+	foreach my $i (0..$#r) {
+		if ($k[$#k - $i] =~ /^\p{InKana}$/) {
+			if ($k[$#k - $i] eq $r[$#r - $i]) {
+				$ks .= chop($k);
+				$rs .= chop($r);
+			}
+		}
+		last if $k[$#k - $i] !~ /^\p{InKana}$/;
+	}
+	$ks = reverse $ks;
+	$rs = reverse $rs;
+
+	# make a stab at removing interior kana as well, attaching
+	# the id tag to the first half.
+	#
+	if ($k =~ /^\P{InKana}+\p{InKana}+\P{InKana}+$/) {
+		my ($k1,$k2,$k3) = split(/(\p{InKana}+)/,$k,3);
+		if (defined $k3) {
+			# two bogons:
+			# - katakana small-tsu sometimes used instead of hiragana
+			# - sigh: カ月, ケ月, ヶ月, ヵ月
+			my $ktmp = $k2;
+			if ($ktmp eq "ッ") {
+				$ktmp = "っ";
+			}elsif (grep($ktmp eq $_,qw(カ ケ ヶ ヵ))) {
+				$ktmp = '[かが]';
+			}
+			my ($r1,$r2,$r3) = $r =~ /^(.+)($ktmp)(.+)$/;
+		    if ($id) {
+				if ($format eq "html") {
+					return qq(<span v="$id">)
+						. "$kp<ruby><rb>$k1</rb><rt>$r1</rt></ruby>"
+						. "$k2<ruby><rb>$k3</rb><rt>$r3</rt></ruby>"
+						. "$ks</span>";
+				}else{
+			        return sprintf("%s{%s|%s I=%s}%s{%s|%s}%s",
+						$kp,$k1,$r1,$id,$k2,$k3,$r3,$ks);
+				}
+		    }elsif ($format eq "html") {
+					return "$kp<ruby><rb>$k1</rb><rt>$r1</rt></ruby>"
+						. "$k2<ruby><rb>$k3</rb><rt>$r3</rt></ruby>$ks";
+			}else{
+		        return sprintf("%s{%s|%s}%s{%s|%s}%s",
+					$kp,$k1,$r1,$k2,$k3,$r3,$ks);
+		    }
+		}
+	}elsif ($id) {
+		if ($format eq "html") {
+			return qq(<span v="$id">)
+				. "$kp<ruby><rb>$k</rb><rt>$r</rt></ruby>"
+				. "$ks</span>";
+		}else{
+			return sprintf("%s{%s|%s I=%s}%s",$kp,$k,$r,$id,$ks);
+		}
+	}elsif ($format eq "html") {
+		return "$kp<ruby><rb>$k</rb><rt>$r</rt></ruby>$ks";
+	}else{
+		return sprintf("%s{%s|%s}%s",$kp,$k,$r,$ks);
+    }
 }
 
 1;
