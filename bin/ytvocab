@@ -27,7 +27,7 @@ usage: $0 [--verbose] [--texfile file] [--output string] [file...]
     --verbose: print complete glosses instead of trimming
     --texfile: incorporate page numbers from LaTeX aux file
     --output: generate output in latex|text (default text)
-	-l: shortcut for latex output
+    -l: shortcut for latex output
 EOF
 $OUTPUT = "latex" if $OPT_L;
 
@@ -76,7 +76,7 @@ if ($TEXFILE) {
 	}
 	printtrailer();
 }else{
-	printwords({count=>1},sort keys %seen);
+	printwords({count=>1},grep($seen{$_}->{gloss},sort keys %seen));
 }
 exit 0;
 
