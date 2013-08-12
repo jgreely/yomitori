@@ -38,7 +38,9 @@ readconfig();
 my $DB = "$YT{basedir}/lib/dict.sqlite3";
 
 my $DICT_INDEX = "$YT{dict_index} -d $YT{unidic} -f utf8 -t utf8";
-my @userdict = map($YT{libdir} . "/$_",split(/,/,$YT{userdict}||""));
+my @fixparse = map($YT{libdir} . "/$_",split(/,/,$YT{fixparse}||""));
+my @fixgloss = map($YT{libdir} . "/$_",split(/,/,$YT{fixgloss}||""));
+
 
 my %INFO = (
 	title => "",
@@ -49,14 +51,18 @@ my %INFO = (
 );
 
 GetOptions(
-	"user-dictionary|userdict|u=s" => \@userdict,
+	"fixparse|f=s" => \@fixparse,
+	"fixgloss|g=s" => \@fixgloss,
 	"title|t=s" => \$INFO{title},
 	"author|a=s" => \$INFO{author},
 ) or die <<EOF;
-usage: $0 [--user-dictionary file] [--title name] [--author name] [text ...]
-    --user dictionary: either a tab-separated file of parsing/meaning
-        overrides, or a .csv file containing data in mecab_dict_index
-        format (the only way to really override verbs and adjectives)
+usage: $0 [options] [text ...]
+    --fixparse: file with parsing overrides for MeCab; can contain
+        a mix of whitespace-separated (kanji,reading) lines or CSV
+        lines in mecab-dict-index format (the only way to really
+        override verbs and adjectives)
+	--fixgloss: file with whitespace-separated meaning overrides
+        for specific (kanji,reading) pairs or non-kanji words.
     --title: string to set as the book title in the PDF metadata
     --author: string to set as the book author in the PDF metadata
         title and author can also be embedded in a leading comment
@@ -66,14 +72,37 @@ usage: $0 [--user-dictionary file] [--title name] [--author name] [text ...]
         # author Nishimura Kyoutarou
 EOF
 
-my $userdict;
-my %userdict;
-if (@userdict) {
+my %fixgloss;
+if (@fixgloss) {
+	foreach my $file (@fixgloss) {
+		if (!open(In,$file)) {
+			warn "$0: $file: $!\n";
+			next;
+		}
+		while (<In>) {
+			next if /^\s*$|^\s*#/;
+			chomp;
+			my ($word,$reading,$gloss) = split(/\s+/,$_,3);
+			if (allkana($word)) {
+				$gloss = "$reading $gloss";
+				$reading = $word;
+			}
+			$fixgloss{$word,$reading} = $gloss;
+		}
+		close(In);
+	}
+}
+
+my $fixparse;
+if (@fixparse) {
 	my $src = mktemp("$YT{tmpdir}/ytglosssrcXXXXX");
-	$userdict = mktemp("$YT{tmpdir}/ytglossdicXXXXX");
-	open(Out,">$src") or die "$0: $userdict: $!\n";
-	foreach my $file (@userdict) {
-		open(In,$file) or die "$0: $file: $!\n";
+	$fixparse = mktemp("$YT{tmpdir}/ytglossdicXXXXX");
+	open(Out,">$src") or die "$0: $fixparse: $!\n";
+	foreach my $file (@fixparse) {
+		if (!open(In,$file)) {
+			warn "$0: $file: $!\n";
+			next;
+		}
 		while (<In>) {
 			next if /^\s*$|^\s*#/;
 			chomp;
@@ -82,12 +111,8 @@ if (@userdict) {
 				print Out "$_\n";
 				next;
 			}
-			my ($word,$reading,$gloss) = split(/\t/);
-			if (!$gloss) {
-				$gloss = $reading;
-				$reading = $word;
-			}
-			$userdict{$word,$reading} = $gloss;
+			my ($word,$reading) = split(/\s+/);
+			$reading = $word unless $reading;
 			$reading = hira2kata($reading);
 			# crude hack to treat user-supplied words as low-cost
 			# names; unidic-specific
@@ -96,12 +121,12 @@ if (@userdict) {
 		}
 	}
 	close(Out);
-	system("$DICT_INDEX -u $userdict $src > /dev/null 2>&1");
+	system("$DICT_INDEX -u $fixparse $src > /dev/null 2>&1");
 	unlink($src);
 }
 
 my @MCOPTS = (dicdir => $YT{unidic});
-push(@MCOPTS,userdic => $userdict) if $userdict;
+push(@MCOPTS,userdic => $fixparse) if $fixparse;
 my $MC = Text::MeCab->new(@MCOPTS);
 
 my $dbh = DBI->connect("dbi:SQLite:dbname=$DB","","",
@@ -182,12 +207,12 @@ while (<>) {
 				}
 
 				# do exact matches on the user dictionary
-				if ($userdict{$df,$dr}) {
-					$gloss = $userdict{$df,$dr};
+				if ($fixgloss{$df,$dr}) {
+					$gloss = $fixgloss{$df,$dr};
 					splice(@m,0,$n+1);
 					last;
-				}elsif ($userdict{$sf,$sr}) {
-					$gloss = $userdict{$sf,$sr};
+				}elsif ($fixgloss{$sf,$sr}) {
+					$gloss = $fixgloss{$sf,$sr};
 					splice(@m,0,$n+1);
 					last;
 				}
@@ -472,7 +497,7 @@ sub printheader {
 }
 
 END {
-	unlink($userdict) if $userdict;
+	unlink($fixparse) if $fixparse;
 }
 sub cleanup {
 	exit;

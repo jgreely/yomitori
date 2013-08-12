@@ -1,0 +1,6 @@
+# words whose meanings are incorrect in the vocabulary lookup
+#
+茉莉香 まりか Marika
+白凰 はくおう Hakuou
+騎央 きお Kio
+くいっと [on-mim] in a single gulp; in one go

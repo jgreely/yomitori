@@ -1,7 +1,7 @@
 B=../bin
 
 %:
-	$B/ytgloss -u $@-userdict.txt $@.txt |\
+	$B/ytgloss -f $@-fixparse.txt -g $@-fixgloss.txt $@.txt |\
 	$B/ytknown -k $@-known.txt -g $@-gloss.txt > $@.yt
 	$B/ytruby $@.yt | $B/yt2latex > $@.tex
 	uplatex $@.tex > /dev/null

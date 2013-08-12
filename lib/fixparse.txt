@@ -1,17 +1,12 @@
-# words that are parsed wrong by MeCab, and/or looked up wrong by
-# ytgloss. Technically this should be split into two files, since
-# you don't want to override the parsing just to fix the English
-# translation.
+# words that are parsed wrong or given incorrect readings by MeCab/Unidic
 #
-# Unlike the others, this file is TAB-separated to avoid ambiguity.
-#
-茉莉香	まりか	Marika
-白凰	はくおう	Hakuou
-元気印	げんきじるし	[n] mark of liveliness; sign of activity
-騎央	きお	Kio
-身体   からだ  body
-くいっと	[on-mim] in a single gulp; in one go
-大なり小なり	だいなりしょうなり	more or less
+茉莉香 まりか
+白凰 はくおう
+元気印 げんきじるし
+騎央 きお
+身体 からだ
+大なり小なり だいなりしょうなり
+くいっと
 
 #Unidic reads 日曜日 as two morphemes, にちよう and ひ; this prevents
 #assembly into にちようび. Just to be safe, I'm putting in all seven
@@ -30,6 +25,6 @@
 #line that has the same context:
 #    perl -CADS -ne 'use utf8;if (/^達,/ and s/ト.ル/タチ/g) {
 #        @a=split(/,/);$a[3]-=5000;print join(",",@a);
-#    }' lex.csv >> userdict.csv
+#    }' lex.csv >> fixparse.txt
 #
 達,4789,4789,6132,名詞,固有名詞,人名,名,*,*,タチ,タチ,達,タチ,達,タチ,固,*,*,*,*

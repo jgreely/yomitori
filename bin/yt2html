@@ -119,7 +119,7 @@ sub dometa {
 		}
 	}else{
 		if ($reading) {
-			return "<ruby><rb>$word</rb><rt>$reading</rt></ruby>";
+			return stripruby("html",$word,$reading,"");
 		}else{
 			return $word;
 		}

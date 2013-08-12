@@ -25,7 +25,10 @@ GetOptions(
 my %Skiplist;
 while (@GlossOnly) {
 	my $GlossOnly = shift(@GlossOnly);
-	open(In,$GlossOnly) or die "$0: $GlossOnly: $!\n";
+	if (!open(In,$GlossOnly)) {
+		warn "$0: $GlossOnly: $!\n";
+		next;
+	}
 	while (<In>) {
 		next if /^\s*$|^\s*#/;
 		chomp;
@@ -37,7 +40,10 @@ while (@GlossOnly) {
 }
 while (@Known) {
 	my $Known = shift(@Known);
-	open(In,$Known) or die "$0: $Known: $!\n";
+	if (!open(In,$Known)) {
+		warn "$0: $Known: $!\n";
+		next;
+	}
 	while (<In>) {
 		next if /^\s*$|^\s*#/;
 		chomp;
