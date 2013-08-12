@@ -1,0 +1,12 @@
+*.pdf
+*.odt
+*.doc
+*.html
+*.sqlite3
+*.tex
+*.yt
+*.aux
+*.dvi
+*.dvi-
+*.log
+*.dump

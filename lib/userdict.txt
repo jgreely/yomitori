@@ -23,3 +23,13 @@
 木曜日	もくようび	Thursday
 金曜日	きんようび	Friday
 土曜日	どようび	Saturday
+
+#this one is obnoxious enough that it needs to be global. Name-達
+#gets parsed as Name-tooru; othernoun-達 is fine. We need to copy
+#the tooru line from the Unidic source and replace with a tachi
+#line that has the same context:
+#    perl -CADS -ne 'use utf8;if (/^達,/ and s/ト.ル/タチ/g) {
+#        @a=split(/,/);$a[3]-=5000;print join(",",@a);
+#    }' lex.csv >> userdict.csv
+#
+達,4789,4789,6132,名詞,固有名詞,人名,名,*,*,タチ,タチ,達,タチ,達,タチ,固,*,*,*,*

@@ -74,18 +74,14 @@ if (@userdict) {
 	open(Out,">$src") or die "$0: $userdict: $!\n";
 	foreach my $file (@userdict) {
 		open(In,$file) or die "$0: $file: $!\n";
-		if ($file =~ /\.csv$/) {
-			while (<In>) {
-				#mecab-dict-index can't handle comments and blank lines
-				next if /^\s*#|^\s*$/;
-				print Out;
-			}
-			close(In);
-			next;
-		}
 		while (<In>) {
 			next if /^\s*$|^\s*#/;
 			chomp;
+			if (/^[^\d]+,\d/) {
+				#CSV line to be copied verbatim
+				print Out "$_\n";
+				next;
+			}
 			my ($word,$reading,$gloss) = split(/\t/);
 			if (!$gloss) {
 				$gloss = $reading;
