@@ -1,13 +1,13 @@
 #!/usr/bin/env perl -CADS
 
-# dvicleanruby: for each page, strip out any repeated glosses.
+# dvicleanruby: for each page, strip out any repeated ruby text.
 # relies on the precise behaviors of upLaTeX, pxrubrica, and
 # dviasm.py, all as shipped with TeXLive 2013, and only works
-# for words glossed precisely like this:
+# for words marked up precisely like this:
 #	\\aruby{\\label{$id}\\special{::tag $id}$word}{$reading}
 #
-# each glossed word has a "::tag" line inside the
-# push/pop pair where it is set; the gloss for that
+# each marked-up word has a "::tag" line inside the
+# push/pop pair where it is set; the ruby for that
 # word is inside the *previous* push/pop pair at the
 # same level, so we have to search backwards through
 # the file to find it.
@@ -33,7 +33,7 @@ open(Out,">$dump");
 my $page = -1;
 my %seen;
 my @buffer;
-my $ingloss;
+my $inword;
 my $depth;
 while (<In>) {
 	given($_) {
@@ -43,9 +43,9 @@ while (<In>) {
 		}
 		when(/^(\s*)xxx: '::tag (id\d+)'$/) {
 			$depth = length($1) - 2;
-			$ingloss = $2;
+			$inword = $2;
 			push(@buffer,$_);
-			next unless $seen{$ingloss}++;
+			next unless $seen{$inword}++;
 
 			my $start;
 			my $stop;
@@ -60,7 +60,7 @@ while (<In>) {
 			}
 			splice(@buffer,$start,$stop - $start + 1);
 			print Out @buffer if @buffer;
-			$ingloss = "";
+			$inword = "";
 			@buffer = ();
 		}
 		default {

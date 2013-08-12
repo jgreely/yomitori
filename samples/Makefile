@@ -2,7 +2,7 @@ B=../bin
 
 %:
 	$B/ytgloss -f $@-fixparse.txt -g $@-fixgloss.txt $@.txt |\
-	$B/ytknown -k $@-known.txt -g $@-gloss.txt > $@.yt
+	$B/ytknown -k $@-known.txt -r $@-rubyonly.txt > $@.yt
 	$B/ytruby $@.yt | $B/yt2latex > $@.tex
 	uplatex $@.tex > /dev/null
 	$B/dvicleanruby $@.dvi

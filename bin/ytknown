@@ -15,18 +15,18 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 readconfig();
 
 my @Known = map($YT{libdir} . "/$_",split(/,/,$YT{knownwords}||""));
-my @GlossOnly = map($YT{libdir} . "/$_",split(/,/,$YT{glosswords}||""));
+my @RubyOnly = map($YT{libdir} . "/$_",split(/,/,$YT{rubyonly}||""));
 
 GetOptions(
 	"known-words|known|k=s" => \@Known,
-	"gloss-only|gloss|g=s" => \@GlossOnly,
-) or die "usage: $0 [--known-words file] [--gloss-only file] [file ...]\n";
+	"ruby-only|ruby|r=s" => \@RubyOnly,
+) or die "usage: $0 [--known-words file] [--ruby-only file] [file ...]\n";
 
 my %Skiplist;
-while (@GlossOnly) {
-	my $GlossOnly = shift(@GlossOnly);
-	if (!open(In,$GlossOnly)) {
-		warn "$0: $GlossOnly: $!\n";
+while (@RubyOnly) {
+	my $RubyOnly = shift(@RubyOnly);
+	if (!open(In,$RubyOnly)) {
+		warn "$0: $RubyOnly: $!\n";
 		next;
 	}
 	while (<In>) {
@@ -34,7 +34,7 @@ while (@GlossOnly) {
 		chomp;
 		my ($kanji,$reading) = split;
 		$reading = $kanji unless defined $reading;
-		$Skiplist{$kanji,$reading} = "gloss";
+		$Skiplist{$kanji,$reading} = "ruby";
 	}
 	close(In);
 }
@@ -69,7 +69,7 @@ sub dometa {
 		|| "good";
 
 	$SeenId{$meta->{id}} = $skip unless $SeenId{$meta->{id}};
-	if ($skip eq "gloss") {
+	if ($skip eq "ruby") {
 		if (!$meta->{reading} or $meta->{word} eq $meta->{reading}) {
 			return $meta->{word};
 		}else{

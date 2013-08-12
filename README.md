@@ -50,7 +50,7 @@ Basic Usage
 	kanji-config-updmap auto
 	ytmakedict
     ytgloss -f fixparse.txt -g fixgloss.txt foo.txt |
-        ytknown -k known.txt -g gloss.txt > foo.yt
+        ytknown -k known.txt -r rubyonly.txt > foo.yt
     ytruby foo.yt | yt2latex > foo.tex
     uplatex foo.tex
     dvicleanruby foo.dvi
@@ -67,7 +67,7 @@ Basic Usage
 TODO
 ----
 
-* document the config file and known/gloss/userdict files, with samples
+* document the config file and known/rubyonly/fix* files, with samples
 * yt2html: use decent CSS styling
 * yt2html: allow use of local/different jQuery/jQueryUI/theme (default 
   is Google CDN and Pepper Grinder theme)
@@ -75,7 +75,7 @@ TODO
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
 * explain the tricky bits
-* make ytgloss/ytknown preserve glossing for known word with variant kanji.
+* make ytgloss/ytknown preserve ruby for known word with variant kanji.
   Ex: Unidic reports 提げる as 下げる; JMdict glosses them differently,
   but since I lookup by dictform first, I merge them together; ditto for
   殺る as やる, 訊く as 聞く, etc. 高飛び gets the wrong gloss because

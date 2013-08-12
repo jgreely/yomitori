@@ -59,7 +59,7 @@ sub readconfig {
 			bindir => "$BASEDIR/bin",
 			tmpdir => "/tmp",
 			knownwords => "known.txt,known-user.txt",
-			glosswords => "gloss.txt,gloss-user.txt",
+			rubyonly => "rubyonly.txt,rubyonly-user.txt",
 			fixparse => "fixparse.txt",
 			fixgloss => "fixgloss.txt",
 		);
