@@ -1,0 +1,33 @@
+#list of words that will get ruby, but will not appear in
+#the vocabulary. Always use the dictionary form for verbs
+#and adjectives, and include the kana-only version for common
+#and unambiguous ones.
+#
+居る いる
+有る ある
+為る する
+成る なる
+出来る できる
+過ぎる すぎる
+仕舞う しまう
+遣る やる
+呉れる くれる
+貰う もらう
+
+此処 ここ
+其処 そこ
+何処 どこ
+彼処 あそこ
+此れ これ
+其れ それ
+何れ どれ
+彼れ あれ
+皆 みな
+皆 みんな
+少し すこし
+貴方 あなた
+誰 だれ
+先ず まず
+殆ど ほとんど
+御 ご
+後 あと
