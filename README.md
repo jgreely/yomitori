@@ -36,8 +36,10 @@ Tools
 * yt2html: convert to HTML with ruby tags and jQueryUI-based tooltips
 * dvicleanruby: use dviasm.py to strip furigana that appear more than
   once per page.
-* ytvocab: extract a vocabulary list from a document, incorporating
-  page-number information from the upLaTeX .aux file.
+* ytvocab: extract a vocabulary list from a document, optionally
+  incorporating page-number information from the upLaTeX .aux file.
+  Normal text output can be pasted into Word/LibreOffice and
+  converted to a table.
 * ytdegloss: strip all embedded readings and glosses from a file;
   useful for comparing versions of a document.
 * Yomitori.pm: utility functions
@@ -47,7 +49,7 @@ Basic Usage
 
 	kanji-config-updmap auto
 	ytmakedict
-    ytgloss -u userdict.txt foo.txt |
+    ytgloss -f fixparse.txt -g fixgloss.txt foo.txt |
         ytknown -k known.txt -g gloss.txt > foo.yt
     ytruby foo.yt | yt2latex > foo.tex
     uplatex foo.tex
