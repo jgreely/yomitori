@@ -3,6 +3,7 @@ package Yomitori;
 require 5.10.1;
 use strict;
 use warnings;
+use utf8;
 use FindBin qw($RealBin);
 
 require Exporter;
@@ -230,7 +231,7 @@ sub stripruby {
 			# - sigh: カ月, ケ月, ヶ月, ヵ月
 			my $ktmp = $k2;
 			if ($ktmp eq "ッ") {
-				$ktmp = "っ";
+				$ktmp = "[ッっ]";
 			}elsif (grep($ktmp eq $_,qw(カ ケ ヶ ヵ))) {
 				$ktmp = '[かが]';
 			}
