@@ -48,6 +48,8 @@ while (<>) {
 }
 
 if ($TEXFILE) {
+	my $pagecount;
+	my $wordcount;
 	my $curpage = 0;
 	my @words;
 	open(In,$TEXFILE) or die "$0: $TEXFILE: $!\n";
@@ -61,6 +63,8 @@ if ($TEXFILE) {
 				printpagenum($curpage,scalar(@tmp));
 				printwords({count=>0},@tmp);
 				print "\n" if $OUTPUT eq "text";
+				$pagecount++;
+				$wordcount += scalar(@tmp);
 			}
 			@words = ();
 			$curpage = $pagenum;
@@ -73,8 +77,12 @@ if ($TEXFILE) {
 		printpagenum($curpage,scalar(@tmp));
 		printwords({count=>0},@tmp);
 		print "\\end{description}\n" if $OUTPUT eq "latex";
+		$pagecount++;
+		$wordcount += scalar(@tmp);
 	}
 	printtrailer();
+	printf STDERR ("Total words: %d, per-page: %.2f\n",
+		scalar(keys %seen),$wordcount/$pagecount);
 }else{
 	printwords({count=>1},grep($seen{$_}->{gloss},sort keys %seen));
 }
