@@ -18,7 +18,7 @@ my $TEXFILE;
 my $OUTPUT = "text";
 my $OPT_L;
 GetOptions(
-	"verbose|v" => \$VERBOSE,
+	"verbose|v+" => \$VERBOSE,
 	"texfile|t=s" => \$TEXFILE,
 	"output-format|output|o=s" => \$OUTPUT,
 	"latex|l" => \$OPT_L,
@@ -121,8 +121,13 @@ sub printwords {
 			print " / $reading" if $reading and $word ne $reading;
 			print "]\\hfill \\\\*\n{\\small ",$seen{$id}->{gloss},"}\n";
 		}elsif ($OUTPUT eq "text") {
-			print $id,"\t" if $VERBOSE;
 			print $seen{$id}->{count},"\t" if $options->{count};
+			print $id,"\t" if $VERBOSE;
+			if ($VERBOSE > 1 and $seen{$id}->{dictform}) {
+				# useful for updating the --known files
+				print "[",$seen{$id}->{dictform}," ",
+					$seen{$id}->{dictreading},"]\t";
+			}
 			print join("\t",$word,$reading,$seen{$id}->{gloss}),"\n";
 		}else{
 			die "$0: unknown output format '$OUTPUT'\n";
