@@ -69,8 +69,6 @@ TODO
 
 * document the config file and known/rubyonly/fix* files, with samples
 * yt2html: use decent CSS styling
-* yt2html: allow use of local/different jQuery/jQueryUI/theme (default 
-  is Google CDN and Pepper Grinder theme)
 * add ab2yt to convert Aozora Bunko markup (clean up old code)
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output

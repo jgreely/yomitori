@@ -63,6 +63,9 @@ sub readconfig {
 			rubyonly => "rubyonly.txt,rubyonly-user.txt",
 			fixparse => "fixparse.txt",
 			fixgloss => "fixgloss.txt",
+			jquery => "http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js",
+			jqueryui => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js",
+			jqueryui_css => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/pepper-grinder/jquery-ui.min.css",
 		);
 	}else{
 		open(In,"$HOME/.ytrc") or die "$0: $HOME/.ytrc: $!\n";
