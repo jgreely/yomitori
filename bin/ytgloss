@@ -517,7 +517,7 @@ sub matchmecab {
 			return 0 if $m1[$i]->{p1} ne $m2[$i]->{p1};
 		}
 	}else{
-		my @m2 = getmorphemes($returnedk);
+		my @m2 = getmorphemes($returnedr);
 		pop(@m2);
 		return 0 if @m1 != @m2;
 		foreach my $i (0..$#m1) {
