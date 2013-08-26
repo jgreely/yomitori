@@ -384,20 +384,20 @@ sub printglossword {
 	my $reading = $dictreading ? $dictreading : $surfacereading;
 	if (my $id = $seen{$word,$reading,$gloss}) {
 		print makemeta({
-			word => $word,
-			reading => $reading,
+			word => $surface,
+			reading => $surfacereading,
 			id => $id,
 		});
 	}elsif ($word =~ /^\p{InKana}+$/) {
 		my $id = ++$vocabid;
 		$seen{$word,$reading,$gloss} = $id;
 		my $meta = {
-			word => $word,
+			word => $surface,
 			reading => "",
 			id => $id,
 			gloss => $gloss,
 		};
-		if ($dictreading and $dictreading ne $reading) {
+		if ($dictreading and $dictreading ne $surfacereading) {
 			$meta->{dictreading} = $dictreading;
 			$meta->{dictform} = $dictform;
 		}
@@ -406,12 +406,12 @@ sub printglossword {
 		my $id = ++$vocabid;
 		$seen{$word,$reading,$gloss} = $id;
 		my $meta = {
-			word => $word,
-			reading => $reading,
+			word => $surface,
+			reading => $surfacereading,
 			id => $id,
 			gloss => $gloss,
 		};
-		if ($dictreading and $dictreading ne $reading) {
+		if ($dictreading and $dictreading ne $surfacereading) {
 			$meta->{dictreading} = $dictreading;
 			$meta->{dictform} = $dictform;
 		}
