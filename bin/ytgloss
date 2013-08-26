@@ -218,39 +218,6 @@ while (<>) {
 					last;
 				}
 
-				# don't bother with lookup if all we have left
-				# are particles, counter words, suffixes,
-				# conjunctions, and/or auxiliary verbs.
-				# (形状詞 generates some false positives, too,
-				# but also some words that really need to be
-				# looked up; maybe only skip it if @m>1)
-				# TODO: lookup uncommon 接続詞 when @m == 1,
-				# like すなわち
-				my $fluff = 0;
-				foreach my $pos1 (qw{助詞 接尾辞 助数詞 助動詞
-					接続詞}) {
-					foreach my $m (@m[0..$n]) {
-						$fluff++ if $m->{p1} eq $pos1;
-					}
-				}
-				# also check for non-independent verbs at start ...(i)(ta)
-				if ($m[0]->{p1} eq "動詞" and $m[0]->{p2} eq "非自立可能") {
-					$fluff++;
-				}
-				if ($fluff == $n + 1) {
-					# just provide ruby if there are kanji
-					foreach my $m (@m[0..$n]) {
-						if (! $m->{sf}) {
-							#do nothing
-						}elsif (allkana($m->{sf})) {
-							print $m->{sf};
-						}else{
-							printglossword($m->{sf},$m->{sr},"" x 3);
-						}
-					}
-					splice(@m,0,$n+1);
-					last;
-				}
 				my ($k,$r,$g);
 				#JMdict first
 

@@ -3,10 +3,6 @@
 # yt2html: convert a glossed file into HTML, with ruby markup
 # and jQueryUI-based tooltips
 #
-# TODO: allow alternate URL for jQuery/jQueryUI/CSS
-# TODO: incorporate ytruby code to provide proper furigana,
-# and move the tooltips to a <span> that surrounds the entire
-# word.
 
 require 5.10.1;
 use strict;
