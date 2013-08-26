@@ -116,7 +116,7 @@ if (@fixparse) {
 			$reading = hira2kata($reading);
 			# crude hack to treat user-supplied words as low-cost
 			# names; unidic-specific
-			print Out "$word,0,0,100,名詞,固有名詞,人名,姓,*,*,",
+			print Out "$word,0,0,100,名詞,普通名詞,一般,姓,*,*,",
 				"$reading,$reading,$word,$reading,$word,$reading,和,*,*,*,*\n";
 		}
 	}
@@ -435,6 +435,9 @@ sub getmorphemes {
 		my ($pos1,$pos2,$ctype,$cform,$dictreading,
 			$dictform,$origin,$reading,$pron) = @feature[0,1,4,5,6,7,12,17,9];
 		$dictform =~ s/-.*$//;
+		# wtf, unidic? kanji proper names get katakana dictforms?
+		# (cf. "高橋")
+		$dictform = $surface if !allkana($surface) and allkana($dictform);
 		#field 17 isn't always filled in, so fall back to 9, which
 		#might have "ー" in it
 		#TODO: convert any "ー" into standard vowel
