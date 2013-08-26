@@ -78,12 +78,6 @@ TODO
   but since I lookup by dictform first, I merge them together; ditto for
   殺る as やる, 訊く as 聞く, etc. 高飛び gets the wrong gloss because
   of this, because Unidic normalizes to 高跳び.
-* fix common false-positive in ytgloss: when looking up expressions by
-  dictreading only, if they include a particle, make sure that the
-  dictform of a successful lookup includes that particle as hiragana.
-  That should not only handle cases like "kara neko" matching 唐猫,
-  but also get rid of some code that prevents matching some expressions
-  that include particles.
 * ytgloss bug: should catch もしかすると as expression
 * Unidic glitch: can't match いつの間にか because Unidic returns あいだ
   as the reading for 間; this is probably like getting た for 他 in

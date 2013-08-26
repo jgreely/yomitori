@@ -121,7 +121,12 @@ if (@fixparse) {
 		}
 	}
 	close(Out);
-	system("$DICT_INDEX -u $fixparse $src > /dev/null 2>&1");
+	if (-s $src) {
+		system("$DICT_INDEX -u $fixparse $src > /dev/null 2>&1");
+	}else{
+		unlink($fixparse);
+		$fixparse = "";
+	}
 	unlink($src);
 }
 
@@ -170,14 +175,9 @@ while (<>) {
 		while (@m > 0) {
 			my ($sf,$sr,$df,$dr,$gloss);
 
-			#most particles are unlikely starters, like "no" and "ha";
-			# "ni" is a frequent starter, but also generates a
-			# lot of false positives to be weeded out later.
-			# TODO: find a way to remove "to" from this list without
-			# generating ridiculous false positives like "to naru"
-			# for unrelated expressions like "to naridasu".
+			#some particles are unlikely starters, like "no" and "ha".
 			if ($m[0]->{p1} eq "助詞"
-				and grep ($m[0]->{sf} eq $_,qw(の に は が で と も))) {
+				and grep ($m[0]->{sf} eq $_,qw(の は))) {
 				print $m[0]->{sf};
 				shift(@m);
 				next;
@@ -196,6 +196,7 @@ while (<>) {
 				$sf = join("",map($_->{sf},@m[0..$n]));
 				$sr = join("",map($_->{sr},@m[0..$n]));
 				($df,$dr) = ($sf,$sr);
+				# TODO: only do this for verbs and adjectives
 				if ($m[$n]->{sr} ne $m[$n]->{dr}) {
 					$df = join("",map($_->{sf},@m[0..($n-1)]),
 						$m[$n]->{df});
@@ -257,6 +258,10 @@ while (<>) {
 				$krlookup->execute(0,$df,$dr);
 				($k,$r,$g) = $krlookup->fetchrow_array;
 				if (defined $g) {
+					if ($n == 0 and allkana($sf)) {
+						# don't convert non-kanji uses to kanji
+						$df = $dr;
+					}
 					$gloss = $g;
 					splice(@m,0,$n+1);
 					last;
@@ -302,7 +307,10 @@ while (<>) {
 				# honorific o/go
 				if ($m[$n]->{p1} ne "助詞" and $m[0]->{df} ne "御") {
 					$rlookup->execute(0,$dr);
-					($k,$r,$g) = $rlookup->fetchrow_array;
+					while (($k,$r,$g) = $rlookup->fetchrow_array) {
+						# only use lookups that parse the same
+						last if matchmecab($dr,$k,$r,@m);
+					}
 					if (defined $g) {
 						$gloss = $g;
 						splice(@m,0,$n+1);
@@ -312,7 +320,10 @@ while (<>) {
 
 				# non-kanji words ("",dr)
 				$krlookup->execute(0,"",$dr);
-				($k,$r,$g) = $krlookup->fetchrow_array;
+				while (($k,$r,$g) = $krlookup->fetchrow_array) {
+					# only use lookups that parse the same
+					last if matchmecab($dr,$k,$r,@m);
+				}
 				if (defined $g) {
 					$gloss = $g;
 					splice(@m,0,$n+1);
@@ -355,7 +366,7 @@ while (<>) {
 				}
 			}
 			if ($gloss) {
-				printglossword($sf,$sr,$gloss,$df,$dr) if $gloss;
+				printglossword($sf,$sr,$gloss,$df,$dr);
 			}
 		}
 	}
@@ -368,7 +379,9 @@ $dbh->disconnect;
 exit(0);
 
 sub printglossword {
-	my ($word,$reading,$gloss,$dictform,$dictreading) = @_;
+	my ($surface,$surfacereading,$gloss,$dictform,$dictreading) = @_;
+	my $word = $dictform ? $dictform : $surface;
+	my $reading = $dictreading ? $dictreading : $surfacereading;
 	if (my $id = $seen{$word,$reading,$gloss}) {
 		print makemeta({
 			word => $word,
@@ -424,9 +437,12 @@ sub getmorphemes {
 		$dictform =~ s/-.*$//;
 		#field 17 isn't always filled in, so fall back to 9, which
 		#might have "ー" in it
+		#TODO: convert any "ー" into standard vowel
 		$reading = $pron unless $reading;
+
 		# I have no idea why "0" has no surface form in unidic
 		$surface = "0" if $pos2 eq "数詞" and $dictform eq "ゼロ";
+
 		# Sometimes hiragana small-tsu becomes a standalone morpheme
 		# with no reading.
 		if ($origin eq "記号" and $surface eq "っ") {
@@ -435,11 +451,12 @@ sub getmorphemes {
 			$dictform = $surface;
 			$dictreading = $surface;
 		}
+
 		#if there's kanji in dictreading, mecab has punted, and
 		#found no valid reading; flag these for manual fixing
 		if ($dictreading !~ /^\p{InKana}+$/) {
-			$dictreading = "XnoparseX";
-			$reading = "XnoparseX";
+			$dictreading = "XnoparseX=$dictreading";
+			$reading = "XnoparseX=$reading";
 		}
 		push(@morpheme,{
 			sf => $surface,
@@ -485,6 +502,29 @@ sub getclauses {
 	}
 	push(@clause,$current);
 	return @clause;
+}
+
+# loose dictionary lookups should be passed through mecab to see
+# if they parse into the same sort of morphemes
+#
+sub matchmecab {
+	my ($searchedfor,$returnedk,$returnedr,@m1) = @_;
+	if ($returnedk) {
+		my @m2 = getmorphemes($returnedk);
+		pop(@m2);
+		return 0 if @m1 != @m2;
+		foreach my $i (0..$#m1) {
+			return 0 if $m1[$i]->{p1} ne $m2[$i]->{p1};
+		}
+	}else{
+		my @m2 = getmorphemes($returnedk);
+		pop(@m2);
+		return 0 if @m1 != @m2;
+		foreach my $i (0..$#m1) {
+			return 0 if $m1[$i]->{p1} ne $m2[$i]->{p1};
+		}
+	}
+	return 1;
 }
 
 sub printheader {
