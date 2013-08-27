@@ -26,6 +26,10 @@ Tools
 -----
 
 * ytmakedict: convert JMdict and JMnedict into a simple SQLite database
+* ab2yt: strip out Aozora Bunko markup and optionally save the original
+  ruby to a file, marking the ones that are normal dictionary words.
+  Attempts to guess input encoding, which can be overridden on the
+  command line. Currently pretty basic, ignoring ［＃...］ markup.
 * ytgloss: add readings and English definitions to a UTF8-encoded text file
 * ytknown: strip out definitions and readings for words the user knows
 * ytruby: convert the embedded readings into proper furigana by stripping
@@ -49,6 +53,7 @@ Basic Usage
 
 	kanji-config-updmap auto
 	ytmakedict
+	ab2yt foo.ab --encoding cp932 --ruby orig-ruby.txt > foo.txt
     ytgloss -f fixparse.txt -g fixgloss.txt foo.txt |
         ytknown -k known.txt -r rubyonly.txt > foo.yt
     ytruby foo.yt | yt2latex > foo.tex
@@ -69,7 +74,7 @@ TODO
 
 * document the config file and known/rubyonly/fix* files, with samples
 * yt2html: use decent CSS styling
-* add ab2yt to convert Aozora Bunko markup (clean up old code)
+* ab2yt: process ［＃...］ markup, warn about embedded HTML
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
 * explain the tricky bits

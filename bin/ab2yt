@@ -1,0 +1,118 @@
+#!/usr/bin/env perl
+#
+# ab2yt: basic Aozora Bunko to Yomitori converter. Ignores the header
+# that's present in all real AB books, because many groups that use
+# their markup omit it.
+#
+
+require 5.10.1;
+use warnings;
+use strict;
+use utf8;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+use Getopt::Long qw(:config no_ignore_case bundling);
+use Encode;
+use Encode::Guess;
+use DBI;
+
+readconfig();
+
+my $RUBYFILE;
+my $ENCODING;
+GetOptions(
+	"ruby-file|ruby|r=s" => \$RUBYFILE,
+	"encoding|e=s" => \$ENCODING,
+) or die "usage: $0 [--ruby-file filename] [--encoding cp932|utf8] file ...\n";
+
+binmode(STDOUT,":utf8");
+binmode(STDERR,":utf8");
+
+if ($ENCODING) {
+	my $tmp = find_encoding($ENCODING);
+	die "$0: $ENCODING: invalid encoding\n" unless ref $tmp;
+	$ENCODING = $tmp;
+}
+
+my $DB = "$YT{basedir}/lib/dict.sqlite3";
+my $dbh = DBI->connect("dbi:SQLite:dbname=$DB","","",
+	{ sqlite_unicode => 1 ,AutoCommit => 0 });
+my $krlookup = $dbh->prepare(q{
+	select gloss from dict
+	where type = ? and kanji = ? and reading = ?
+});
+
+my @vocab;
+my %vocab;
+my %normalword;
+while (<>) {
+	if (!$ENCODING and length($_) > 2) {
+		$ENCODING = guess_encoding($_,qw(cp932 utf8));
+		die "$0: can't guess encoding from first non-blank line\n"
+			unless ref $ENCODING;
+	}
+	$_ = $ENCODING->decode($_);
+	chomp;
+	tr/\013\015//d;
+
+	# convert Kotoeri double-quotes into something Word can verticalize
+	tr/“”/〝〟/;
+
+	#all glosses that have vbars
+	s/｜([^《》]+)《([^《》]+)》/rubify($1,$2)/eg;
+
+	#all remaining glosses
+	s/([々\p{InKanji}]+)《([^《》]+)》/rubify($1,$2)/eg;
+
+	#convert doubled katakana-long-vowel to doubled em-dash
+	s/ーー/——/g;
+
+	# strip out vaguely-specified extra markup
+	# TODO: parse the ones that actually matter, like rare kanji
+	# that are in Unicode but aren't in SJIS.
+	if (s/［＃[^］]+］//g) {
+		warn "line $.: unknown ［＃...］ expression deleted\n";
+	}
+	print "$_\n";
+}
+close(Out);
+
+if ($RUBYFILE) {
+	open(Out,">:utf8",$RUBYFILE) or die "$0: $RUBYFILE: $!\n";
+	foreach my $key (@vocab) {
+		print Out "#line(s): ",$vocab{$key},"\n";
+		print Out "##" if $normalword{$key};
+		print Out $key,"\n\n";
+	}
+	close(Out);
+}
+exit 0;
+
+sub rubify {
+	my $key = join(" ",@_);
+	if (!$vocab{$key}) {
+		push(@vocab,$key);
+		# check JMdict/JMnedict for exact kanji/reading matches
+		$krlookup->execute(0,@_);
+		my @tmp = $krlookup->fetchrow_array;
+		$krlookup->finish;
+		if (defined($tmp[0])) {
+			$normalword{$key}++;
+		}else{
+			$krlookup->execute(1,@_);
+			@tmp = $krlookup->fetchrow_array;
+			$krlookup->finish;
+			$normalword{$key}++ if defined($tmp[0]);
+		}
+	}
+	$vocab{$key} .= " $.";
+	return $_[0];
+}
+
+sub InKanji {
+	return <<'END';
++utf8::InCJKUnifiedIdeographs
+-utf8::IsCn
+END
+}
