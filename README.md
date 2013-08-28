@@ -78,11 +78,6 @@ TODO
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
 * explain the tricky bits
-* make ytgloss/ytknown preserve ruby for known word with variant kanji.
-  Ex: Unidic reports 提げる as 下げる; JMdict glosses them differently,
-  but since I lookup by dictform first, I merge them together; ditto for
-  殺る as やる, 訊く as 聞く, etc. 高飛び gets the wrong gloss because
-  of this, because Unidic normalizes to 高跳び.
 * ytgloss bug: should catch もしかすると as expression
 * Unidic glitch: can't match いつの間にか because Unidic returns あいだ
   as the reading for 間; this is probably like getting た for 他 in

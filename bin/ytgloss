@@ -173,7 +173,7 @@ while (<>) {
 		}
 		my @m = @{$clause->{m}};
 		while (@m > 0) {
-			my ($sf,$sr,$df,$dr,$gloss);
+			my ($sf,$sr,$df,$dr,$gloss,$sdf);
 
 			#some particles are unlikely starters, like "no" and "ha".
 			if ($m[0]->{p1} eq "助詞"
@@ -195,16 +195,18 @@ while (<>) {
 				# 
 				$sf = join("",map($_->{sf},@m[0..$n]));
 				$sr = join("",map($_->{sr},@m[0..$n]));
-				($df,$dr) = ($sf,$sr);
+				($df,$dr,$sdf) = ($sf,$sr,"");
 				# TODO: only do this for verbs and adjectives
 				if ($m[$n]->{sr} ne $m[$n]->{dr}) {
 					$df = join("",map($_->{sf},@m[0..($n-1)]),
 						$m[$n]->{df});
 					$dr = join("",map($_->{sr},@m[0..($n-1)]),
 						$m[$n]->{dr});					
-				}elsif ($n == 0) {
+				}
+				if ($n == 0) {
 					$df = $m[0]->{df};
 					$dr = $m[0]->{dr};
+					$sdf = $m[0]->{sdf};
 				}
 
 				# do exact matches on the user dictionary
@@ -216,12 +218,31 @@ while (<>) {
 					$gloss = $fixgloss{$sf,$sr};
 					splice(@m,0,$n+1);
 					last;
+				}elsif ($n == 0 and $sdf
+					and $fixgloss{$sdf,$dr}) {
+					$gloss = $fixgloss{$sdf,$dr};
+					shift(@m);
+					last;
 				}
-
 				my ($k,$r,$g);
 				#JMdict first
 
-				# first try for an exact match on (df,dr)
+				# first try for an exact match on (sdf,dr)
+				if ($sdf) {
+					$krlookup->execute(0,$sdf,$dr);
+					($k,$r,$g) = $krlookup->fetchrow_array;
+					if (defined $g) {
+						if ($n == 0 and allkana($sf)) {
+							# don't convert non-kanji uses to kanji
+							$df = $dr;
+						}
+						$gloss = $g;
+						splice(@m,0,$n+1);
+						last;
+					}
+				}
+
+				# next try for an exact match on (df,dr)
 				$krlookup->execute(0,$df,$dr);
 				($k,$r,$g) = $krlookup->fetchrow_array;
 				if (defined $g) {
@@ -326,14 +347,19 @@ while (<>) {
 					if (allkana($sf)) {
 						print $sf;
 					}elsif ($sf) {
-						printglossword($sf,$sr,"XunknownX",$df,$dr);
+						printglossword($sf,$sr,"XunknownX",
+							$sdf ? $sdf : $df,$dr);
 					}
 					shift(@m);
 					last;
 				}
 			}
 			if ($gloss) {
-				printglossword($sf,$sr,$gloss,$df,$dr);
+				if ($sdf) {
+					printglossword($sf,$sr,$gloss,$sdf,$dr);
+				}else{
+					printglossword($sf,$sr,$gloss,$df,$dr);
+				}
 			}
 		}
 	}
@@ -402,13 +428,32 @@ sub getmorphemes {
 		my ($pos1,$pos2,$ctype,$cform,$dictreading,
 			$dictform,$origin,$reading,$pron) = @feature[0,1,4,5,6,7,12,17,9];
 		$dictform =~ s/-.*$//;
+
 		# wtf, unidic? kanji proper names get katakana dictforms?
 		# (cf. "高橋")
+		#
 		$dictform = $surface if !allkana($surface) and allkana($dictform);
+
 		#field 17 isn't always filled in, so fall back to 9, which
-		#might have "ー" in it
-		#TODO: convert any "ー" into standard vowel
+		#might have "ー" in it; instead of guessing the correct vowel,
+		#we'll just steal the matching one from dictreading, except
+		#at the end of a verb morpheme ("キー", etc; TODO)
+		#
 		$reading = $pron unless $reading;
+		if ($reading =~ /ー/) {
+			foreach my $i (0..(length($reading)-2)) {
+				if (substr($reading,$i,1) eq "ー") {
+					substr($reading,$i,1) = substr($dictreading,$i,1);
+				}
+			}
+			substr($reading,-1,1) = substr($dictreading,-1,1)
+				if substr($reading,-1,1) eq "ー" and $pos1 ne "動詞";
+		}
+
+		my $sdf = "";
+		if (grep($pos1 eq $_,qw(動詞 形容詞))) {
+			$sdf = deflect($pos1,$surface,$reading,$dictform,$dictreading);
+		}
 
 		# I have no idea why "0" has no surface form in unidic
 		$surface = "0" if $pos2 eq "数詞" and $dictform eq "ゼロ";
@@ -422,8 +467,8 @@ sub getmorphemes {
 			$dictreading = $surface;
 		}
 
-		#if there's kanji in dictreading, mecab has punted, and
-		#found no valid reading; flag these for manual fixing
+		# if there's kanji in dictreading, mecab has punted, and
+		# found no valid reading; flag these for manual fixing
 		if ($dictreading !~ /^\p{InKana}+$/) {
 			$dictreading = "XnoparseX=$dictreading";
 			$reading = "XnoparseX=$reading";
@@ -431,6 +476,7 @@ sub getmorphemes {
 		push(@morpheme,{
 			sf => $surface,
 			sr => ($reading ? kata2hira($reading) : ""),
+			sdf => $sdf,
 			df => $dictform,
 			dr => ($dictreading ? kata2hira($dictreading) : ""),
 			p1 => $pos1,
@@ -447,7 +493,7 @@ sub getclauses {
 	my @clause;
 	my $current = {_filler => 1, sf => "", sr => "", m => []};
 	foreach (@_) {
-		#TODO: allow "、" in non-filler clause, for AsoIku on-mim and
+		# TODO: allow "、" in non-filler clause, for AsoIku on-mim and
 		# other edge cases
 		next if $_->{p1} eq "BOS/EOS";
 		if ($_->{or} eq "記号"

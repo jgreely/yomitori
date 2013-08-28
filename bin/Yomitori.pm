@@ -20,6 +20,7 @@ our @EXPORT = qw(
 	parsemeta
 	makemeta
 	stripruby
+	deflect
 );
 use vars qw($VERSION);
 our $VERSION = '1.00';
@@ -270,6 +271,72 @@ sub stripruby {
 	}else{
 		return sprintf("%s{%s|%s}%s",$kp,$k,$r,$ks);
     }
+}
+
+# preserve the kanji use (or lack thereof) in the surface form
+# of verbs and adjectives by converting them into dictionary
+# form. This would be really easy if Unidic weren't a bit quirky.
+#
+sub deflect {
+	my ($p1,$sf,$sr,$df,$dr) = @_;
+
+	return $df if $sf eq $df;
+
+	if ($p1 eq "形容詞") {
+		return $sf if substr($sf,-1,1) eq "い";
+		return kata2hira($dr) if allkana($sf);
+		if (substr($sf,-1,1) eq "く") {
+			substr($sf,-1,1,"い");
+			return $sf;
+		}
+		return $df;
+	}
+	return $df unless $p1 eq "動詞";
+
+	# normalize ズ/ヅ and ジ/ヂ for comparison
+	map(tr/ズジ/ヅヂ/,$sr,$dr);
+
+	# for words containing 行, normalize ユ to イ
+	map(tr/ユ/イ/,$sr,$dr) if $df =~ /行/;
+
+	# for 得る, force the first character to エ
+	substr($sr,0,1,"エ") if $df eq "得る";
+
+	# deal with consonant changes in compounds
+	if (substr($sr,0,1) ne substr($dr,0,1)) {
+		substr($sr,0,1) =~ tr/ガギグゲゴ/カキクケコ/;
+		substr($sr,0,1) =~ tr/ザジズゼゾ/サシスセソ/;
+		substr($sr,0,1) =~ tr/ダヂヅデド/タチツテト/;
+		substr($sr,0,1) =~ tr/バビブベボ/ハヒフヘホ/;
+		substr($sr,0,1) =~ tr/パピプペポ/ハヒフヘホ/;
+	}
+	return $sf if $sr eq $dr;
+
+	my $len = length($sr) > length($dr) ? length($dr) : length($sr);
+	while ($len > 0) {
+		last if substr($sr,0,$len) eq substr($dr,0,$len);
+		$len--;
+	}
+	if ($len == 0) {
+		if (grep($df eq $_,qw(行く 言う))) {
+			$sf = substr($sf,0,1) . substr($df,1);
+		}elsif ($df eq "来る") {
+			$sf = substr($sf,0,1) eq "来" ? "来る" : "くる";
+		}elsif ($df eq "為る") {
+			$sf = substr($sf,0,1) eq "為" ? "為る" : "する";
+		}else{
+			warn "nothing in common? " . join(" ",$sf,$sr,$df,$dr) . "\n";
+			return $df;
+		}
+	}elsif (length(substr($dr,$len)) == length($df)) {
+		return $df;
+	}else{
+		my $strim = length(substr($sr,$len));
+		my $dtrim = length(substr($dr,$len));
+		substr($sf,-1*$strim) = "" if $strim and $strim < length($sf);
+		$sf .= substr($df,(-1 * $dtrim)) if $dtrim;
+	}
+	return $sf;
 }
 
 1;
