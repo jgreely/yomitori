@@ -17,10 +17,14 @@ my $VERBOSE = 0;
 my $TEXFILE;
 my $OUTPUT = "text";
 my $OPT_L;
+my $KANAONLY = 0;
+my $KANJIONLY = 0;
 GetOptions(
 	"verbose|v+" => \$VERBOSE,
 	"texfile|t=s" => \$TEXFILE,
 	"output-format|output|o=s" => \$OUTPUT,
+	"kana-only|kana|k" => \$KANAONLY,
+	"kanji-only|kanji|K" => \$KANJIONLY,
 	"latex|l" => \$OPT_L,
 ) or die <<EOF;
 usage: $0 [--verbose] [--texfile file] [--output string] [file...]
@@ -28,8 +32,11 @@ usage: $0 [--verbose] [--texfile file] [--output string] [file...]
     --texfile: incorporate page numbers from LaTeX aux file
     --output: generate output in latex|text (default text)
     -l: shortcut for latex output
+	--kanji-only: skip non-kanji words (-K)
+	--kana-only: skip kanji words (-k)
 EOF
 $OUTPUT = "latex" if $OPT_L;
+$KANAONLY = 0 if $KANJIONLY;
 
 my %INFO = (title => "", author => "");
 my %seen;
@@ -115,6 +122,8 @@ sub printwords {
 			$word = $reading;
 		}
 		$reading = "" if $reading and kata2hira($word) eq kata2hira($reading);
+		next if $KANAONLY and !allkana($word);
+		next if $KANJIONLY and allkana($word);
 		my ($shortid) = $id =~ /^id0+(\d+)$/;
 		if ($OUTPUT eq "latex") {
 			print "\\item[$word";
