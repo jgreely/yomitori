@@ -67,11 +67,15 @@ if ($TEXFILE) {
 		if ($curpage != $pagenum) {
 			if ($curpage and @words) {
 				my @tmp = grep($seen{$_}->{gloss} ne "",uniq(@words));
-				printpagenum($curpage,scalar(@tmp));
-				printwords({count=>0},@tmp);
-				print "\n" if $OUTPUT eq "text";
-				$pagecount++;
-				$wordcount += scalar(@tmp);
+				if (@tmp) {
+					printpagenum($curpage,scalar(@tmp));
+					print "\\begin{description}\n" if $OUTPUT eq "latex";
+					printwords({count=>0},@tmp);
+					print "\\end{description}\n" if $OUTPUT eq "latex";
+					print "\n" if $OUTPUT eq "text";
+					$pagecount++;
+					$wordcount += scalar(@tmp);
+				}
 			}
 			@words = ();
 			$curpage = $pagenum;
@@ -81,11 +85,14 @@ if ($TEXFILE) {
 	close(In);
 	if ($curpage and @words) {
 		my @tmp = grep($seen{$_}->{gloss} ne "",uniq(@words));
-		printpagenum($curpage,scalar(@tmp));
-		printwords({count=>0},@tmp);
-		print "\\end{description}\n" if $OUTPUT eq "latex";
-		$pagecount++;
-		$wordcount += scalar(@tmp);
+		if (@tmp) {
+			printpagenum($curpage,scalar(@tmp));
+			print "\\begin{description}\n" if $OUTPUT eq "latex";
+			printwords({count=>0},@tmp);
+			print "\\end{description}\n" if $OUTPUT eq "latex";
+			$pagecount++;
+			$wordcount += scalar(@tmp);
+		}
 	}
 	printtrailer();
 	printf STDERR ("Total words: %d, per-page: %.2f\n",
@@ -105,8 +112,8 @@ sub printpagenum {
 	if ($OUTPUT eq "text") {
 		print "PAGE $page ($count)\n";
 	}elsif ($OUTPUT eq "latex") {
-		print "\\end{description}\n\\newpage\n" if $page > 1;
-		print "{\\large Page $page ($count)}\n\\begin{description}\n";
+		print "\\newpage\n" if $page > 1;
+		print "{\\large Page $page ($count)}\n";
 	}else{
 		die "$0: unknown output format '$OUTPUT'\n";
 	}

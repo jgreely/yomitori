@@ -71,8 +71,8 @@ while (<>) {
 	# strip out vaguely-specified extra markup
 	# TODO: parse the ones that actually matter, like rare kanji
 	# that are in Unicode but aren't in SJIS.
-	if (s/［＃[^］]+］//g) {
-		warn "line $.: unknown ［＃...］ expression deleted\n";
+	if (s/［＃([^］]+)］//g) {
+		warn "line $.: unknown expression ［＃$1］ deleted\n";
 	}
 	print "$_\n";
 }

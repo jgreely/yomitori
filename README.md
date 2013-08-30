@@ -8,6 +8,14 @@ progress, and no matter how messy it looks, trust me that it's
 far better than the version I've been reading novels with for
 the past two years.
 
+[a4r](https://github.com/takahashim/aozora4reader) is a similar
+project, focused on faithfully converting
+[Aozora Bunko](http://www.aozora.gr.jp/) markup to PDF using pLaTeX,
+without surgically extracting vocabulary or augmenting the original
+furigana. I intend to borrow their code for handling the many 
+poorly-documented ［＃...］ extensions to the basic AB markup; it's 
+much better than what I was using.
+
 Requirements
 ------------
 
