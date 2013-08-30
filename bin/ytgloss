@@ -417,7 +417,8 @@ sub getmorphemes {
 	$line =~ tr/ /–/; # spaces get lost in parsing; this is a UTF8 en-dash
 	my @morpheme;
 	for (my $node = $MC->parse($line); $node; $node = $node->next) {
-		my $surface = decode_utf8($node->surface) || "";
+		my $surface = decode_utf8($node->surface);
+		$surface = "" unless defined($surface);
 		$surface =~ tr/–/ /;
 		my $feature = decode_utf8($node->feature) || "";
 		$feature =~ tr/*//d;
@@ -454,9 +455,6 @@ sub getmorphemes {
 		if (grep($pos1 eq $_,qw(動詞 形容詞))) {
 			$sdf = deflect($pos1,$surface,$reading,$dictform,$dictreading);
 		}
-
-		# I have no idea why "0" has no surface form in unidic
-		$surface = "0" if $pos2 eq "数詞" and $dictform eq "ゼロ";
 
 		# Sometimes hiragana small-tsu becomes a standalone morpheme
 		# with no reading.
