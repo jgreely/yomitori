@@ -81,9 +81,8 @@ close(Out);
 if ($RUBYFILE) {
 	open(Out,">:utf8",$RUBYFILE) or die "$0: $RUBYFILE: $!\n";
 	foreach my $key (@vocab) {
-		print Out "#line(s): ",$vocab{$key},"\n";
-		print Out "##" if $normalword{$key};
-		print Out $key,"\n\n";
+		next if $normalword{$key};
+		print Out "#line(s): ",$vocab{$key},"\n",$key,"\n\n";
 	}
 	close(Out);
 }

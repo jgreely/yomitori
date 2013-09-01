@@ -199,7 +199,7 @@ while (<>) {
 				# TODO: only do this for verbs and adjectives
 				if ($m[$n]->{sr} ne $m[$n]->{dr}) {
 					$df = join("",map($_->{sf},@m[0..($n-1)]),
-						$m[$n]->{df});
+						$m[$n]->{sdf} || $m[$n]->{df});
 					$dr = join("",map($_->{sr},@m[0..($n-1)]),
 						$m[$n]->{dr});					
 				}
@@ -290,32 +290,60 @@ while (<>) {
 				# particles should be nuked.
 				next if $m[$n]->{sf} eq "の" and $m[$n]->{p1} eq "助詞";
 
-				# match on just dr, in case the kanji usage is inconsistent,
-				# but not if it ends in a particle or starts with an
-				# honorific o/go
-				if ($m[$n]->{p1} ne "助詞" and $m[0]->{df} ne "御") {
-					$rlookup->execute(0,$dr);
-					while (($k,$r,$g) = $rlookup->fetchrow_array) {
-						# only use lookups that parse the same
-						last if matchmecab($dr,$k,$r,@m);
-					}
-					if (defined $g) {
-						$gloss = $g;
-						splice(@m,0,$n+1);
-						last;
-					}
+				# don't lookup verbs not in dict form followed by a
+				# particle (example false positive: あげて)
+				next if $n == 1 and $m[0]->{p1} eq "動詞"
+					and $m[1]->{p1} eq "助詞"
+					and $m[0]->{sr} ne $m[0]->{dr};
+
+				# match on just dr, in case the kanji usage is inconsistent.
+				$rlookup->execute(0,$dr);
+				while (($k,$r,$g) = $rlookup->fetchrow_array) {
+					# only use lookups that parse the same
+					last if matchmecab($k,$r,@m[0..$n]);
+				}
+				if (defined $g) {
+					$gloss = $g;
+					splice(@m,0,$n+1);
+					last;
 				}
 
 				# non-kanji words ("",dr)
 				$krlookup->execute(0,"",$dr);
 				while (($k,$r,$g) = $krlookup->fetchrow_array) {
 					# only use lookups that parse the same
-					last if matchmecab($dr,$k,$r,@m);
+					last if matchmecab($k,$r,@m[0..$n]);
 				}
 				if (defined $g) {
 					$gloss = $g;
 					splice(@m,0,$n+1);
 					last;
+				}
+
+				# non-kanji words ("",sr)
+				$krlookup->execute(0,"",$sr);
+				while (($k,$r,$g) = $krlookup->fetchrow_array) {
+					# only use lookups that parse the same
+					last if matchmecab($k,$r,@m[0..$n]);
+				}
+				if (defined $g) {
+					$gloss = $g;
+					splice(@m,0,$n+1);
+					last;
+				}
+
+				# hiragana words that might have kanji in dictionary (sf)
+				if (allkana($sf)) {
+					$rlookup->execute(0,$sf);
+					while (($k,$r,$g) = $rlookup->fetchrow_array) {
+						# only use lookups that parse the same
+						last if matchmecab($k,$r,@m[0..$n]);
+					}
+					if (defined $g) {
+						$gloss = $g;
+						splice(@m,0,$n+1);
+						last;
+					}
 				}
 
 				# try exact match in namedict
@@ -522,7 +550,7 @@ sub getclauses {
 # if they parse into the same sort of morphemes
 #
 sub matchmecab {
-	my ($searchedfor,$returnedk,$returnedr,@m1) = @_;
+	my ($returnedk,$returnedr,@m1) = @_;
 	if ($returnedk) {
 		my @m2 = getmorphemes($returnedk);
 		pop(@m2);
