@@ -86,7 +86,6 @@ TODO
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
 * explain the tricky bits
-* ytgloss bug: should catch もしかすると as expression
 * Unidic glitch: can't match いつの間にか because Unidic returns あいだ
   as the reading for 間; this is probably like getting た for 他 in
   too many contexts, sigh.
