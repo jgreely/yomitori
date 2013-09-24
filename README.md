@@ -23,6 +23,9 @@ Requirements
 * [JMdict and JMnedict](http://www.edrdg.org/)
 * [MeCab](https://code.google.com/p/mecab/)
 * [Unidic](http://en.sourceforge.jp/projects/unidic/)
+  (use the full source distribution (unidic-mecab_kana-accent) or
+  one of the binaries; the smaller source zipfile is missing several
+  fields)
 * [TeXLive 2013](http://www.tug.org/texlive/)
 * [dviasm.py](http://www.ctan.org/tex-archive/dviware/dviasm)
   (distributed with TeXLive)
