@@ -1,4 +1,4 @@
-lib/dict.sqlite3: dictdata dictdata/JMdict dictdata/JMnedict.xml
+lib/dict.sqlite3: dictdata dictdata/JMdict dictdata/JMnedict.xml dictdata/kanjidic2.xml
 	./bin/ytmakedict
 
 dictdata:
@@ -10,3 +10,5 @@ dictdata/JMdict: dictdata
 dictdata/JMnedict.xml: dictdata
 	curl http://ftp.monash.edu.au/pub/nihongo/JMnedict.xml.gz | gunzip > dictdata/JMnedict.xml
 
+dictdata/kanjidic2.xml: dictdata
+	curl http://ftp.monash.edu.au/pub/nihongo/kanjidic2.xml.gz | gunzip > dictdata/kanjidic2.xml

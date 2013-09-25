@@ -60,6 +60,36 @@ foreach my $SRC (sort keys %SRC) {
 	$dbh->commit;
 }
 
+# import just the readings from kanjidic2
+#
+my $kanji_sth = $dbh->prepare(q(
+	insert into kanji (char,reading) values (?,?)
+));
+
+# why all the handlers? Simplifying the XML dramatically
+# simplifies the resulting Perl data structure
+#
+my $twig = new XML::Twig(
+	twig_handlers => {
+		dic_ref => \&kdic_simple_dic_ref,
+		cp_value => \&kdic_simple_cp_value,
+		rad_value => \&kdic_simple_rad_value,
+		q_code => \&kdic_simple_q_code,
+		character => \&parse_kdic,
+		reading => \&kdic_ignore_reading,
+		meaning => \&kdic_ignore_meaning,
+		rmgroup => \&kdic_simple_rmgroup,
+		reading_meaning => \&kdic_eliminate_rmgroup,
+		misc => \&kdic_eliminate_misc,
+		dic_number => sub {$_->set_tag('xref')},
+		stroke_count => sub {$_->set_tag('stroke')},
+		query_code => sub {$_->set_tag('query')},
+	}
+);
+$count = 0;
+print "Importing kanjidic2.xml\n";
+$twig->parsefile("$SRCDIR/kanjidic2.xml");
+
 create_indexes($dbh);
 close(STDERR); #sqlite/perl bug
 $dbh->disconnect;
@@ -220,6 +250,137 @@ sub unent {
 	$x->set_text($E{$x->text}) if $E{$x->text};
 }
 
+# ignore non-Japanese readings
+#
+sub kdic_ignore_reading {
+	my ($twig,$element) = @_;
+	my $lang = $element->att('r_type');
+	$element->delete if $lang =~ /^(pinyin|korean_[rh])$/;
+}
+
+# ignore non-english meanings
+#
+sub kdic_ignore_meaning {
+	my ($twig,$element) = @_;
+	$element->delete if $element->att('m_lang');
+}
+
+# simplify the data structure
+#
+sub kdic_simple_dic_ref {
+	my ($twig,$element) = @_;
+	my $key = $element->att('dr_type');
+	$element->del_att('dr_type');
+	$element->set_name($key);
+}
+
+# simplify the data structure
+#
+sub kdic_simple_cp_value {
+	my ($twig,$element) = @_;
+	my $key = $element->att('cp_type');
+	$element->del_att('cp_type');
+	$element->set_name($key);
+}
+
+# simplify the data structure
+#
+sub kdic_simple_q_code {
+	my ($twig,$element) = @_;
+	# ignore all skip_misclass entries (really, who cares?)
+	$element->delete if $element->att('skip_misclass');
+	my $key = $element->att('qc_type');
+	$element->del_att('qc_type');
+	$element->set_name($key);
+}
+
+# simplify the data structure
+#
+sub kdic_simple_rad_value {
+	my ($twig,$element) = @_;
+	my $key = $element->att('rad_type');
+	$element->del_att('rad_type');
+	$element->set_name($key);
+}
+
+# clean up the readings section, ignoring all non-JP readings
+# and splitting them into onyomi and kunyomi. Note that
+# technically there can be more than one rmgroup, but no such
+# records exist right now.
+#
+sub kdic_simple_rmgroup {
+	my ($twig,$element) = @_;
+	foreach my $c ($element->children('reading')) {
+		if ($c->att('r_type') eq "ja_on") {
+			XML::Twig::Elt->new("onyomi",$c->text)
+				->paste(last_child => $element);
+		}elsif ($c->att('r_type') eq "ja_kun") {
+			XML::Twig::Elt->new("kunyomi",$c->text)
+				->paste(last_child => $element);
+		}
+		$c->delete;
+	}
+}
+
+# since there's almost certainly only one rmgroup, merge its
+# contents up a level.
+#
+sub kdic_eliminate_rmgroup {
+	my ($twig,$element) = @_;
+	my @c = $element->children('rmgroup');
+	if (@c == 1) {
+		foreach my $c ($c[0]->children()) {
+			$c->move(last_child => $element->parent);
+		}
+	}
+	$element->delete;
+}
+
+# misc exists only for conceptual grouping; nuke it
+#
+sub kdic_eliminate_misc {
+	my ($twig,$element) = @_;
+	foreach my $c ($element->children()) {
+		$c->move(last_child => $element->parent);
+	}
+	$element->delete;
+}
+
+# parse the full kanjidic2 schema, even though we're only storing
+# the readings for now
+#
+sub parse_kdic {
+	my ($twig,$element) = @_;
+	$count++;
+
+	my @force = qw(stroke meaning nanori variant four_corner onyomi kunyomi);
+	my $ref = $element->simplify(forcearray => \@force,
+		group_tags => { readingmeaning => 'rmgroup' });
+	my $char = $ref->{literal};
+	my %reading;
+	if ($ref->{onyomi}) {
+		foreach my $reading (@{$ref->{onyomi}}) {
+			my $tmp = kata2hira($reading);
+			$reading{$tmp}++;
+		}
+	}
+	if ($ref->{kunyomi}) {
+		foreach my $reading (@{$ref->{kunyomi}}) {
+			my $tmp = $reading;
+			$tmp =~ s/\..*$//;
+			$reading{$tmp}++;
+		}
+	}
+	foreach my $reading (keys %reading) {
+		$kanji_sth->execute($char,$reading);
+	}
+	$element->delete;
+	if ($count % 1000 == 0) {
+		$dbh->commit;
+		print "$count\n";
+	}
+}
+
 sub create_db {
 	my ($dbh) = @_;
 	foreach (split(/;/,<<EOF)) {
@@ -228,6 +389,10 @@ sub create_db {
 			kanji text,
 			reading text,
 			gloss text
+		);
+		create table kanji (
+			char text,
+			reading text
 		)
 EOF
 		$dbh->do($_);
@@ -239,7 +404,8 @@ sub create_indexes {
 	my ($dbh) = @_;
 	foreach (split(/;/,<<EOF)) {
 		create index dict_t_k_r on dict(type,kanji,reading);
-		create index dict_t_r on dict(type,reading)
+		create index dict_t_r on dict(type,reading);
+		create index kanji_c_r on kanji(char,reading)
 EOF
 		$dbh->do($_);
 	}

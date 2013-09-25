@@ -20,7 +20,7 @@ Requirements
 ------------
 
 * Perl 5.10.1+ with DBI, DBD::SQLite, Text::MeCab, XML::Twig, Archive::Zip
-* [JMdict and JMnedict](http://www.edrdg.org/)
+* [JMdict, JMnedict, kanjidic2](http://www.edrdg.org/)
 * [MeCab](https://code.google.com/p/mecab/)
 * [Unidic](http://en.sourceforge.jp/projects/unidic/)
   (use the full source distribution (unidic-mecab_kana-accent) or

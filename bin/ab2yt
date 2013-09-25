@@ -42,6 +42,9 @@ my $krlookup = $dbh->prepare(q{
 	select gloss from dict
 	where type = ? and kanji = ? and reading = ?
 });
+my $kanjilookup = $dbh->prepare(q{
+	select char from kanji where char = ? and reading = ?
+});
 
 my @vocab;
 my %vocab;
@@ -103,7 +106,14 @@ sub rubify {
 			$krlookup->execute(1,@_);
 			@tmp = $krlookup->fetchrow_array;
 			$krlookup->finish;
-			$normalword{$key}++ if defined($tmp[0]);
+			if (defined($tmp[0])) {
+				$normalword{$key}++;
+			}elsif (length($_[0]) == 1) {
+				$kanjilookup->execute(@_);
+				@tmp = $kanjilookup->fetchrow_array;
+				$kanjilookup->finish;
+				$normalword{$key}++ if defined $tmp[0];
+			}
 		}
 	}
 	$vocab{$key} .= " $.";
