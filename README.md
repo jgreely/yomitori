@@ -36,9 +36,10 @@ Requirements
 Tools
 -----
 
-* ytmakedict: convert JMdict and JMnedict into a simple SQLite database
+* ytmakedict: convert JMdict, JMnedict, and kanjidic2 into a simple SQLite
+  database
 * ab2yt: strip out Aozora Bunko markup and optionally save the original
-  ruby to a file, marking the ones that are normal dictionary words.
+  ruby to a file, removing the ones that are normal dictionary readings.
   Attempts to guess input encoding, which can be overridden on the
   command line. Currently pretty basic, ignoring ［＃...］ markup.
 * ytgloss: add readings and English definitions to a UTF8-encoded text file

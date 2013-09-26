@@ -277,6 +277,8 @@ while (<>) {
 					if (defined $g) {
 						$gloss = $g;
 						splice(@m,0,$n+1);
+						$dr = $sr;
+						$df = $sf;
 						last;
 					}
 				}
@@ -409,7 +411,7 @@ sub printglossword {
 			reading => $surfacereading,
 			id => $id,
 		});
-	}elsif ($word =~ /^\p{InKana}+$/) {
+	}elsif (allkana($word)) {
 		my $id = ++$vocabid;
 		$seen{$word,$reading,$gloss} = $id;
 		my $meta = {
