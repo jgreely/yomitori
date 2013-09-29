@@ -48,8 +48,17 @@ my %metakeys = qw(
 );
 
 sub readconfig {
-	my $HOME = $ENV{HOME};
-	if (! -f "$HOME/.ytrc") {
+	my $HOME = $ENV{HOME} || $ENV{userprofile};
+	if (-f "$HOME/.ytrc") {
+		open(In,"$HOME/.ytrc") or die "$0: $HOME/.ytrc: $!\n";
+		while (<In>) {
+			next if /^\s*$|^\s*#/;
+			chomp;
+			my ($key,$value) = /^(\S+)\s*=\s*(.*)$/;
+			$YT{$key} = $value;
+		}
+		close(In);
+	}elsif ($ENV{HOME}) {
 		my $PREFIX = "/usr/local";
 		my $BASEDIR = "$RealBin/..";
 		%YT = (
@@ -57,8 +66,8 @@ sub readconfig {
 			dict_index => "$PREFIX/libexec/mecab/mecab-dict-index",
 			dviasm => "$PREFIX/texlive/2013/texmf-dist/scripts/dviasm/dviasm.py",
 			basedir => $BASEDIR,
-			libdir => "$BASEDIR/lib",
-			bindir => "$BASEDIR/bin",
+			libdir => "lib",
+			bindir => "bin",
 			tmpdir => "/tmp",
 			knownwords => "known.txt,known-user.txt",
 			rubyonly => "rubyonly.txt,rubyonly-user.txt",
@@ -69,14 +78,29 @@ sub readconfig {
 			jqueryui_css => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/pepper-grinder/jquery-ui.min.css",
 		);
 	}else{
-		open(In,"$HOME/.ytrc") or die "$0: $HOME/.ytrc: $!\n";
-		while (<In>) {
-			next if /^\s*$|^\s*#/;
-			chomp;
-			my ($key,$value) = /^(\S+)\s*=\s*(.*)$/;
-			$YT{$key} = $value;
-		}
-		close(In);
+		# reasonable defaults for Windows
+		my $BASEDIR = "/yomitori";
+		%YT = (
+			unidic => "$BASEDIR/unidic",
+			dict_index => "/strawberry/perl/bin/mecab-dict-index.exe",
+			dviasm => "/texlive/2013/texmf-dist/scripts/dviasm/dviasm.py",
+			basedir => $BASEDIR,
+			libdir => "lib",
+			bindir => "bin",
+			tmpdir => "tmp",
+			knownwords => "known.txt,known-user.txt",
+			rubyonly => "rubyonly.txt,rubyonly-user.txt",
+			fixparse => "fixparse.txt",
+			fixgloss => "fixgloss.txt",
+			jquery => "http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js",
+			jqueryui => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js",
+			jqueryui_css => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/pepper-grinder/jquery-ui.min.css",
+		);
+	}
+	if ($ENV{userprofile}) {
+		$YT{devnull} = "NUL";
+	}else{
+		$YT{devnull} = "/dev/null";
 	}
 	foreach (qw(libdir bindir tmpdir)) {
 		$YT{$_} = $YT{basedir} . "/" . $YT{$_}

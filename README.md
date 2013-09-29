@@ -8,6 +8,9 @@ progress, and no matter how messy it looks, trust me that it's
 far better than the version I've been reading novels with for
 the past two years.
 
+It runs under Windows with a little bit of work. See windows.md for
+details.
+
 [a4r](https://github.com/takahashim/aozora4reader) is a similar
 project, focused on faithfully converting
 [Aozora Bunko](http://www.aozora.gr.jp/) markup to PDF using pLaTeX,

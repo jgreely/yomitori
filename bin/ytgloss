@@ -122,7 +122,7 @@ if (@fixparse) {
 	}
 	close(Out);
 	if (-s $src) {
-		system("$DICT_INDEX -u $fixparse $src > /dev/null 2>&1");
+		system("$DICT_INDEX -u $fixparse $src >$YT{devnull} 2>&1");
 	}else{
 		unlink($fixparse);
 		$fixparse = "";
