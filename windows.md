@@ -62,15 +62,15 @@ Notepad++
 (if you don't have an editor that handles kanji, UTF8, and LF line endings)
 
 * install without plugins if you're not using it for coding, and then
-  change a lot of defaults to make it more useful for kanji.
+  change a lot of defaults to make it more useful for kanji:
 
-    Plugins->DSpellCheck->Spell Check Document Automatically (disable)
-    view->Word wrap (enable)
-    Edit->EOL Conversion->UNIX/OSX Format
-    Encoding->Encode in UTF-8 without BOM
-    Settings->Preferences->New Document->Format->Unix/OSX
-    Settings->Preferences->New Document->Encoding->UTF-8 without BOM
-    Settings->Style Configurator->Font Style->Font Name->Meiryo
-    Settings->Style Configurator->Font Style->Font size->14
-    Settings->Style Configurator->Enable global font
-    Settings->Style Configurator->Enable global font size
+* Plugins->DSpellCheck->Spell Check Document Automatically (disable)
+* View->Word wrap (enable)
+* Edit->EOL Conversion->UNIX/OSX Format
+* Encoding->Encode in UTF-8 without BOM
+* Settings->Preferences->New Document->Format->Unix/OSX
+* Settings->Preferences->New Document->Encoding->UTF-8 without BOM
+* Settings->Style Configurator->Font Style->Font Name->Meiryo
+* Settings->Style Configurator->Font Style->Font size->14
+* Settings->Style Configurator->Enable global font
+* Settings->Style Configurator->Enable global font size
