@@ -1,0 +1,65 @@
+#!/usr/bin/env perl -CADS
+#
+# TODO: correctly follow the directory structure of a mobi file
+# unpacked by KindleUnpack.py; currently you have to run it with
+# all of the unpacked XHTML files on the command line:
+#	mobi2yt mobi8/OEBPS/Text/*.xhtml | ytdegloss
+#
+# TODO: use the rubify code from ab2yt to handle furigana
+
+require 5.10.1;
+use warnings;
+use strict;
+use utf8;
+use FindBin qw($Bin);
+use lib $Bin;
+use Yomitori;
+use XML::Twig;
+
+readconfig();
+
+foreach my $file (@ARGV) {
+	my $twig = new XML::Twig(
+		twig_handlers => {
+			span => \&nuke_element,
+			a => \&nuke_element,
+			div => \&nuke_element,
+			head => \&nuke_element,
+			p => \&nuke_class_and_print,
+			ruby => \&convert_ruby,
+#			img => \&print_html,
+		},
+	);
+	$twig->parsefile($file);
+	print "\n";
+}
+exit 0;
+
+sub nuke_element {
+	my ($twig,$element) = @_;
+	$element->erase;
+	return 1;
+}
+
+sub nuke_class_and_print {
+	my ($twig,$element) = @_;
+	$element->del_att("class");
+	print $element->text,"\n";
+	return 1;
+}
+
+sub print_html {
+	my ($twig,$element) = @_;
+	$element->print;
+	print "\n";
+	return 1;
+}	
+
+sub convert_ruby {
+	my ($twig,$element) = @_;
+	use Data::Dumper;
+	$element->set_content(sprintf("{%s|%s}",$element->first_child_text,
+		$element->last_child_text));
+	$element->erase;
+	return 1;
+}

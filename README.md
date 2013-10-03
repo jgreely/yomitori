@@ -36,11 +36,17 @@ Requirements
   and a [UI theme](http://jqueryui.com/themeroller/), if you don't
   want to just use Google-hosted versions.
 
+Optional
+--------
+* [KindleUnpack](http://wiki.mobileread.com/wiki/KindleUnpack)
+
 Tools
 -----
 
 * ytmakedict: convert JMdict, JMnedict, and kanjidic2 into a simple SQLite
   database
+* mobi2yt: convert text from DRM-free, unpacked AZW3 files. Currently
+  very basic.
 * ab2yt: strip out Aozora Bunko markup and optionally save the original
   ruby to a file, removing the ones that are normal dictionary readings.
   Attempts to guess input encoding, which can be overridden on the
@@ -89,6 +95,8 @@ TODO
 
 * document the config file and known/rubyonly/fix* files, with samples
 * yt2html: use decent CSS styling
+* mobi2yt: correctly navigate unpacked AZW3 file and handle embedded
+  furigana the same as ab2yt.
 * ab2yt: process ［＃...］ markup, warn about embedded HTML
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output

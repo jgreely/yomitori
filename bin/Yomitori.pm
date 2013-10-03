@@ -173,6 +173,10 @@ sub parsemeta {
 	my ($tmp,$rest) = split(/ /,$meta,2);
 	($result->{word},$result->{reading}) = split(/\|/,$tmp,2);
 	$result->{reading} = "" unless defined $result->{reading};
+	if (defined($rest) and $rest ne "" and index($rest,"=") == -1) {
+		$result->{reading} .= " " . $rest;
+		$rest = "";
+	}
 	while (defined($rest) and $rest ne "") {
 		$rest =~ s/^ //;
 		$rest =~ s/^([DGIR])=(\S+)//;
