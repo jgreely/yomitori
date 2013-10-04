@@ -75,6 +75,7 @@ Basic Usage
 	kanji-config-updmap auto
 	ytmakedict
 	ab2yt foo.ab --encoding cp932 --ruby orig-ruby.txt > foo.txt
+	mobi2yt foo-azw3-unpacked > foo.txt
     ytgloss -f fixparse.txt -g fixgloss.txt foo.txt |
         ytknown -k known.txt -r rubyonly.txt > foo.yt
     ytruby foo.yt | yt2latex > foo.tex
@@ -95,8 +96,7 @@ TODO
 
 * document the config file and known/rubyonly/fix* files, with samples
 * yt2html: use decent CSS styling
-* mobi2yt: correctly navigate unpacked AZW3 file and handle embedded
-  furigana the same as ab2yt.
+* mobi2yt: handle embedded furigana the same as ab2yt.
 * ab2yt: process ［＃...］ markup, warn about embedded HTML
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output

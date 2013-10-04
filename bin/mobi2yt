@@ -1,10 +1,5 @@
 #!/usr/bin/env perl -CADS
 #
-# TODO: correctly follow the directory structure of a mobi file
-# unpacked by KindleUnpack.py; currently you have to run it with
-# all of the unpacked XHTML files on the command line:
-#	mobi2yt mobi8/OEBPS/Text/*.xhtml | ytdegloss
-#
 # TODO: use the rubify code from ab2yt to handle furigana
 
 require 5.10.1;
@@ -17,6 +12,11 @@ use Yomitori;
 use XML::Twig;
 
 readconfig();
+
+# check for standard unpacked AZW3 directory structure
+if (-d "$ARGV[0]/mobi8/OEBPS/Text") {
+	@ARGV = sort <$ARGV[0]/mobi8/OEBPS/Text/*.xhtml>;
+}
 
 foreach my $file (@ARGV) {
 	my $twig = new XML::Twig(
