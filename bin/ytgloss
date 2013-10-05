@@ -495,7 +495,7 @@ sub getmorphemes {
 			$dictreading = $surface;
 		}
 
-		if (allkana($surface)) {
+		if (allkana($surface) and $reading eq "") {
 			$dictreading = $surface;
 			$reading = $surface;
 		}
