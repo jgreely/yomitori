@@ -148,11 +148,6 @@ my $rlookup = $dbh->prepare(q{
 });
 
 while (<>) {
-	if (/^$/) {
-		print;
-		next;
-	}
-	chomp;	
 	if ($. == 1 and /^#Yomitori-1/) {
 		# scan for file metadata lines
 		while (<>) {
@@ -166,6 +161,11 @@ while (<>) {
 		printheader();
 		$INFO{_done} = 1;
 	}
+	if (/^$/) {
+		print;
+		next;
+	}
+	chomp;	
 	foreach my $clause (getclauses(getmorphemes($_))) {
 		if ($clause->{_filler}) {
 			print $clause->{sf};

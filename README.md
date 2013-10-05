@@ -32,12 +32,12 @@ Requirements
 * [TeXLive 2013](http://www.tug.org/texlive/)
 * [dviasm.py](http://www.ctan.org/tex-archive/dviware/dviasm)
   (distributed with TeXLive)
-* [jQuery](http://jquery.com/), [jQueryUI](http://jqueryui.com/),
-  and a [UI theme](http://jqueryui.com/themeroller/), if you don't
-  want to just use Google-hosted versions.
 
 Optional
 --------
+* [jQuery](http://jquery.com/), [jQueryUI](http://jqueryui.com/),
+  and a [UI theme](http://jqueryui.com/themeroller/), if you don't
+  want to just use Google-hosted versions.
 * [KindleUnpack](http://wiki.mobileread.com/wiki/KindleUnpack)
 
 Tools
@@ -96,7 +96,6 @@ TODO
 
 * document the config file and known/rubyonly/fix* files, with samples
 * yt2html: use decent CSS styling
-* mobi2yt: handle embedded furigana the same as ab2yt.
 * ab2yt: process ［＃...］ markup, warn about embedded HTML
 * add additional paper sizes to yt2latex
 * clean up ytmakedict code and output
