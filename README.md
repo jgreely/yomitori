@@ -75,7 +75,7 @@ Basic Usage
 	kanji-config-updmap auto
 	ytmakedict
 	ab2yt foo.ab --encoding cp932 --ruby orig-ruby.txt > foo.txt
-	mobi2yt foo-azw3-unpacked > foo.txt
+	mobi2yt foo-azw3-unpacked --ruby orig-ruby.txt > foo.txt
     ytgloss -f fixparse.txt -g fixgloss.txt foo.txt |
         ytknown -k known.txt -r rubyonly.txt > foo.yt
     ytruby foo.yt | yt2latex > foo.tex

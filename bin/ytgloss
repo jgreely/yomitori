@@ -495,17 +495,16 @@ sub getmorphemes {
 			$dictreading = $surface;
 		}
 
+		if (allkana($surface)) {
+			$dictreading = $surface;
+			$reading = $surface;
+		}
 		# if there's kanji in dictreading, mecab has punted, and
 		# found no valid reading; flag these for manual fixing
 		if ($dictreading ne "" and !allkana($dictreading)) {
-			if (allkana($surface)) {
-				$dictreading = $surface;
-				$reading = $surface;
-			}else{
-				warn "mecab failed to parse '$surface'!\n";
-				$dictreading = "XnoparseX=$dictreading";
-				$reading = "XnoparseX=$reading";
-			}
+			warn "mecab failed to parse '$surface'!\n";
+			$dictreading = "XnoparseX=$dictreading";
+			$reading = "XnoparseX=$reading";
 		}
 		push(@morpheme,{
 			sf => $surface,
