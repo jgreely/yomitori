@@ -94,6 +94,9 @@ Basic Usage
 TODO
 ----
 
+* mobi2yt: detect inline JPEGs used to replace non-sJIS characters
+  (such as roman numerals); publisher workflow seems to leave these
+  in Kindle books even though they're UTF-8 XHTML
 * document the config file and known/rubyonly/fix* files, with samples
 * yt2html: use decent CSS styling
 * ab2yt: process ［＃...］ markup, warn about embedded HTML

@@ -50,6 +50,9 @@ foreach my $file (@ARGV) {
 			div => \&nuke_element,
 			head => \&nuke_element,
 			p => \&nuke_class_and_print,
+			h1 => \&nuke_class_and_print,
+			h2 => \&nuke_class_and_print,
+			h3 => \&nuke_class_and_print,
 			ruby => \&convert_ruby,
 #			img => \&print_html,
 		},
@@ -84,6 +87,10 @@ sub nuke_class_and_print {
 	return 1;
 }
 
+#TODO: flag small images in the middle of text lines; they're likely
+#replacements for non-sJIS characters (roman numerals, accented
+#chracters, unusual kanji)
+#
 sub print_html {
 	my ($twig,$element) = @_;
 	$element->print;
