@@ -353,7 +353,7 @@ sub deflect {
 		}elsif ($df eq "為る") {
 			$sf = substr($sf,0,1) eq "為" ? "為る" : "する";
 		}else{
-			warn "nothing in common? " . join(" ",$sf,$sr,$df,$dr) . "\n";
+			warn "deflect: failed to normalize for vocabulary on line $.; " . join(" ",$sf,$sr,$df,$dr) . "\n";
 			return $df;
 		}
 	}elsif (length(substr($dr,$len)) == length($df)) {
