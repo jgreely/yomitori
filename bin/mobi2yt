@@ -101,9 +101,15 @@ sub print_html {
 
 sub convert_ruby {
 	my ($twig,$element) = @_;
-	use Data::Dumper;
-	my $base = $element->first_child_text;
-	my $ruby = $element->last_child_text;
+	my $base;
+	my $ruby;
+	foreach my $child ($element->children) {
+		if ($child->gi eq "#PCDATA") {
+			$base .= $child->trimmed_text;
+		}elsif ($child->gi eq "rt") {
+			$ruby .= $child->trimmed_text;
+		}
+	}
 	if ($RUBYFILE) {
 		my $key = join(" ",$base,$ruby);
 		if (!$vocab{$key}) {
