@@ -101,15 +101,18 @@ sub print_html {
 
 sub convert_ruby {
 	my ($twig,$element) = @_;
-	my $base;
-	my $ruby;
+	my $base = "";
+	my $ruby = "";
 	foreach my $child ($element->children) {
-		if ($child->gi eq "#PCDATA") {
+		if ($child->gi eq "#PCDATA" or $child->gi eq "rb") {
 			$base .= $child->trimmed_text;
 		}elsif ($child->gi eq "rt") {
 			$ruby .= $child->trimmed_text;
 		}
 	}
+	#edge case: sometimes a picture of a non-SJIS kanji appears
+	#as the base, which gets ignored.
+	$base = "(empty)" if $base eq "";
 	if ($RUBYFILE) {
 		my $key = join(" ",$base,$ruby);
 		if (!$vocab{$key}) {

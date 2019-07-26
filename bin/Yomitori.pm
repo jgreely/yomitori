@@ -12,7 +12,7 @@ our @EXPORT = qw(
 	readconfig
 	%YT
 	$YTREGEXP
-	InKana
+	InKana2
 	InFWAN
 	allkana
 	kata2hira
@@ -113,11 +113,11 @@ sub readconfig {
 }
 
 sub allkana {
-	return $_[0] =~ /^\p{InKana}+$/;
+	return $_[0] =~ /^\p{InKana2}+$/;
 }
 
 #character class for regexp
-sub InKana {
+sub InKana2 {
 	return <<END;
 3040\t309F
 30A0\t30FF
@@ -227,7 +227,7 @@ sub stripruby {
 	my ($kp,$rp,$k,$r,$ks,$rs);
 	map($_="",$kp,$rp,$k,$r,$ks,$rs);
 	foreach my $i (0..$#r) {
-		if ($prefix and $k[$i] =~ /^\p{InKana}$/) {
+		if ($prefix and $k[$i] =~ /^\p{InKana2}$/) {
 			if ($k[$i] eq $r[$i]) {
 				$kp .= $k[$i];
 				$rp .= $r[$i];
@@ -241,13 +241,13 @@ sub stripruby {
 	@k = split(//,$k);
 	@r = split(//,$r);
 	foreach my $i (0..$#r) {
-		if ($k[$#k - $i] =~ /^\p{InKana}$/) {
+		if ($k[$#k - $i] =~ /^\p{InKana2}$/) {
 			if ($k[$#k - $i] eq $r[$#r - $i]) {
 				$ks .= chop($k);
 				$rs .= chop($r);
 			}
 		}
-		last if $k[$#k - $i] !~ /^\p{InKana}$/;
+		last if $k[$#k - $i] !~ /^\p{InKana2}$/;
 	}
 	$ks = reverse $ks;
 	$rs = reverse $rs;
@@ -255,8 +255,8 @@ sub stripruby {
 	# make a stab at removing interior kana as well, attaching
 	# the id tag to the first half.
 	#
-	if ($k =~ /^\P{InKana}+\p{InKana}+\P{InKana}+$/) {
-		my ($k1,$k2,$k3) = split(/(\p{InKana}+)/,$k,3);
+	if ($k =~ /^\P{InKana2}+\p{InKana2}+\P{InKana2}+$/) {
+		my ($k1,$k2,$k3) = split(/(\p{InKana2}+)/,$k,3);
 		if (defined $k3) {
 			# two bogons:
 			# - katakana small-tsu sometimes used instead of hiragana
@@ -267,7 +267,10 @@ sub stripruby {
 			}elsif (grep($ktmp eq $_,qw(カ ケ ヶ ヵ))) {
 				$ktmp = '[かが]';
 			}
-			my ($r1,$r2,$r3) = $r =~ /^(.+)($ktmp)(.+)$/;
+			my ($r1,$r2,$r3) = ('','','');
+			if ($r =~ /^(.+)($ktmp)(.+)$/) {
+				($r1,$r2,$r3) = ($1,$2,$3);
+			}
 		    if ($id) {
 				if ($format eq "html") {
 					return qq(<span v="$id">)

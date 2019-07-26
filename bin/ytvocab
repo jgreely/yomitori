@@ -62,7 +62,7 @@ if ($TEXFILE) {
 	open(In,$TEXFILE) or die "$0: $TEXFILE: $!\n";
 	printheader();
 	while (<In>) {
-		my ($id,$pagenum) = /^.newlabel{(id\d+)}{{\d*}{(\d+)}/;
+		my ($id,$pagenum) = /^.newlabel\{(id\d+)}\{\{\d*}\{(\d+)}/;
 		next unless $id;
 		if ($curpage != $pagenum) {
 			if ($curpage and @words) {

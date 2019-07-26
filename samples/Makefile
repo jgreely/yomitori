@@ -5,7 +5,8 @@ B=../bin
 	$B/ytknown -k $@-known.txt -r $@-rubyonly.txt > $@.yt
 	$B/ytruby $@.yt | $B/yt2latex > $@.tex
 	uplatex $@.tex > /dev/null
-	$B/dvicleanruby $@.dvi
+#current version of dviasm can't handle uplatex output
+#	$B/dvicleanruby $@.dvi
 	dvipdfmx -q $@.dvi
 	$B/ytvocab -t $@.aux -l $@.yt > $@-vocab.tex
 	uplatex $@-vocab.tex > /dev/null
@@ -15,7 +16,7 @@ B=../bin
 	$B/yt2html $@.yt > $@.html
 
 clean:
-	@rm -f *.yt *.tex *.aux *.log *.dvi *.dvi* *.dump *~
+	@rm -f *.yt- *.yt *.tex *.aux *.log *.dvi *.dvi* *.dump *~
 
 realclean: clean
 	@rm -f *.pdf *.odt *.doc *.html
